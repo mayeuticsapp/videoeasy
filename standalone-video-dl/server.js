@@ -12,6 +12,8 @@ const YTDLP_BIN = path.resolve(__dirname, "bin/yt-dlp");
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
+// --- Helpers ---
+
 function runYtDlp(args) {
   return new Promise((resolve, reject) => {
     let stdout = "";
@@ -67,6 +69,8 @@ function friendlyError(msg) {
     return "Nessun formato video disponibile. Potrebbe richiedere login.";
   return msg;
 }
+
+// --- Routes ---
 
 app.get("/api/info", async (req, res) => {
   const url = req.query.url;
@@ -140,7 +144,6 @@ app.get("/api/subtitles", async (req, res) => {
       "--convert-subs", "vtt",
       "--skip-download", "--no-playlist",
       "--sleep-requests", "2",
-      "--trim-filenames", "100",
       "-o", outputTemplate,
       url,
     ]);
