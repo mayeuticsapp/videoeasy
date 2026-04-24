@@ -102,40 +102,37 @@ app.get("/api/info", async (req, res) => {
   }
 });
 
-app.get("/api/download", async (req, res) => {
+app.get("/api/download", (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).json({ error: "URL mancante" });
-  const tmpDir = os.tmpdir();
-  const uid = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-  const outputTemplate = path.join(tmpDir, `vdl_${uid}_%(title)s.%(ext)s`);
-  let downloadedFile = null;
-  try {
-    const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
-    await runYtDlp([
-      "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
-      "--merge-output-format", "mp4",
-      "--no-playlist",
-      "--trim-filenames", "100",
-      ...extra,
-      "-o", outputTemplate,
-      url,
-    ]);
-    const files = fs.readdirSync(tmpDir).filter((f) => f.startsWith(`vdl_${uid}_`));
-    if (files.length === 0) throw new Error("File non trovato dopo il download");
-    downloadedFile = path.join(tmpDir, files[0]);
-    const stat = fs.statSync(downloadedFile);
-    const originalName = files[0].replace(`vdl_${uid}_`, "");
-    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(originalName)}"`);
-    res.setHeader("Content-Type", "video/mp4");
-    res.setHeader("Content-Length", stat.size);
-    const stream = fs.createReadStream(downloadedFile);
-    stream.pipe(res);
-    res.on("finish", () => { if (downloadedFile) fs.unlink(downloadedFile, () => {}); });
-    res.on("close", () => { if (downloadedFile) fs.unlink(downloadedFile, () => {}); });
-  } catch (e) {
-    if (downloadedFile) fs.unlink(downloadedFile, () => {});
-    if (!res.headersSent) res.status(500).json({ error: friendlyError(e.message) });
-  }
+
+  const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
+  const bin = fs.existsSync(YTDLP_BIN) ? YTDLP_BIN : "yt-dlp";
+
+  res.setHeader("Content-Disposition", 'attachment; filename="video.mp4"');
+  res.setHeader("Content-Type", "video/mp4");
+
+  const proc = spawn(bin, [
+    "-f", "best[ext=mp4]/best",
+    "--no-playlist",
+    ...extra,
+    "-o", "-",
+    url,
+  ]);
+
+  let stderr = "";
+  proc.stderr.on("data", (d) => (stderr += d.toString()));
+
+  proc.stdout.pipe(res);
+
+  proc.on("close", (code) => {
+    if (code !== 0 && !res.headersSent) {
+      const errorLine = stderr.split("\n").filter((l) => l.includes("ERROR")).pop() || stderr.slice(-400);
+      res.status(500).json({ error: friendlyError(errorLine.replace(/^.*ERROR:\s*/, "")) });
+    }
+  });
+
+  req.on("close", () => proc.kill());
 });
 
 app.get("/api/subtitles", async (req, res) => {
