@@ -72,11 +72,18 @@ function friendlyError(msg) {
 
 // --- Routes ---
 
+const YOUTUBE_ARGS = ["--extractor-args", "youtube:player_client=ios,web", "--user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"];
+
+function isYouTube(url) {
+  return /youtu\.?be|youtube\.com/i.test(url);
+}
+
 app.get("/api/info", async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).json({ error: "URL mancante" });
   try {
-    const raw = await runYtDlp(["--dump-json", "--no-playlist", url]);
+    const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
+    const raw = await runYtDlp(["--dump-json", "--no-playlist", ...extra, url]);
     const data = JSON.parse(raw);
     const hasSubs = data.subtitles && Object.keys(data.subtitles).length > 0;
     const hasAuto = data.automatic_captions && Object.keys(data.automatic_captions).length > 0;
@@ -103,11 +110,13 @@ app.get("/api/download", async (req, res) => {
   const outputTemplate = path.join(tmpDir, `vdl_${uid}_%(title)s.%(ext)s`);
   let downloadedFile = null;
   try {
+    const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
     await runYtDlp([
       "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
       "--merge-output-format", "mp4",
       "--no-playlist",
       "--trim-filenames", "100",
+      ...extra,
       "-o", outputTemplate,
       url,
     ]);
@@ -137,6 +146,7 @@ app.get("/api/subtitles", async (req, res) => {
   const uid = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
   const outputTemplate = path.join(tmpDir, `sub_${uid}_%(title)s.%(ext)s`);
   try {
+    const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
     await runYtDlp([
       "--write-subs", "--write-auto-subs",
       "--sub-langs", lang,
@@ -144,6 +154,7 @@ app.get("/api/subtitles", async (req, res) => {
       "--convert-subs", "vtt",
       "--skip-download", "--no-playlist",
       "--sleep-requests", "2",
+      ...extra,
       "-o", outputTemplate,
       url,
     ]);
