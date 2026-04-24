@@ -12,8 +12,6 @@ const YTDLP_BIN = path.resolve(__dirname, "bin/yt-dlp");
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
-// --- Helpers ---
-
 function runYtDlp(args) {
   return new Promise((resolve, reject) => {
     let stdout = "";
@@ -70,8 +68,6 @@ function friendlyError(msg) {
   return msg;
 }
 
-// --- Routes ---
-
 app.get("/api/info", async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).json({ error: "URL mancante" });
@@ -107,6 +103,7 @@ app.get("/api/download", async (req, res) => {
       "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
       "--merge-output-format", "mp4",
       "--no-playlist",
+      "--trim-filenames", "100",
       "-o", outputTemplate,
       url,
     ]);
@@ -143,6 +140,7 @@ app.get("/api/subtitles", async (req, res) => {
       "--convert-subs", "vtt",
       "--skip-download", "--no-playlist",
       "--sleep-requests", "2",
+      "--trim-filenames", "100",
       "-o", outputTemplate,
       url,
     ]);
