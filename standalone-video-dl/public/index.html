@@ -346,13 +346,28 @@
     if (!currentUrl) return;
     const defaultContent = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Scarica MP4`;
     setLoading(dlBtn, true, defaultContent);
+    hideError();
     try {
-      const link = document.createElement("a");
-      link.href = `/api/download?url=${encodeURIComponent(currentUrl)}`;
-      link.click();
-      setTimeout(() => setLoading(dlBtn, false, defaultContent), 4000);
+      const res = await fetch(`/api/download?url=${encodeURIComponent(currentUrl)}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Errore server" }));
+        throw new Error(data.error || "Download fallito");
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get("Content-Disposition") || "";
+      const match = disposition.match(/filename="([^"]+)"/);
+      const filename = match ? decodeURIComponent(match[1]) : "video.mp4";
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
     } catch (e) {
       showError(e.message);
+    } finally {
       setLoading(dlBtn, false, defaultContent);
     }
   }
