@@ -12,8 +12,6 @@ const YTDLP_BIN = path.resolve(__dirname, "bin/yt-dlp");
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
-// --- Helpers ---
-
 function runYtDlp(args) {
   return new Promise((resolve, reject) => {
     let stdout = "";
@@ -62,17 +60,18 @@ function cleanSubtitles(raw) {
 function friendlyError(msg) {
   if (!msg) return "Errore sconosciuto";
   if (msg.includes("429") || msg.toLowerCase().includes("too many requests"))
-    return "Troppe richieste a YouTube. Aspetta 30 secondi e riprova.";
-  if (msg.toLowerCase().includes("private") || msg.toLowerCase().includes("sign in"))
-    return "Video privato o che richiede accesso. Non scaricabile.";
+    return "Troppe richieste. Aspetta 30 secondi e riprova.";
+  if (msg.toLowerCase().includes("private") || msg.toLowerCase().includes("sign in") || msg.toLowerCase().includes("bot"))
+    return "YouTube ha bloccato il server. Riprova tra qualche minuto.";
   if (msg.toLowerCase().includes("no video formats"))
-    return "Nessun formato video disponibile. Potrebbe richiedere login.";
+    return "Nessun formato video disponibile.";
   return msg;
 }
 
-// --- Routes ---
-
-const YOUTUBE_ARGS = ["--extractor-args", "youtube:player_client=ios,web", "--user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"];
+const YOUTUBE_ARGS = [
+  "--extractor-args", "youtube:player_client=ios,web",
+  "--user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+];
 
 function isYouTube(url) {
   return /youtu\.?be|youtube\.com/i.test(url);
@@ -122,7 +121,6 @@ app.get("/api/download", (req, res) => {
 
   let stderr = "";
   proc.stderr.on("data", (d) => (stderr += d.toString()));
-
   proc.stdout.pipe(res);
 
   proc.on("close", (code) => {
@@ -141,7 +139,7 @@ app.get("/api/subtitles", async (req, res) => {
   if (!url) return res.status(400).json({ error: "URL mancante" });
   const tmpDir = os.tmpdir();
   const uid = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-  const outputTemplate = path.join(tmpDir, `sub_${uid}_%(title)s.%(ext)s`);
+  const outputTemplate = path.join(tmpDir, `sub_${uid}.%(ext)s`);
   try {
     const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
     await runYtDlp([
@@ -150,27 +148,25 @@ app.get("/api/subtitles", async (req, res) => {
       "--sub-format", "vtt/srt/best",
       "--convert-subs", "vtt",
       "--skip-download", "--no-playlist",
-      "--sleep-requests", "2",
       ...extra,
       "-o", outputTemplate,
       url,
     ]);
     const subFiles = fs.readdirSync(tmpDir).filter(
-      (f) => f.startsWith(`sub_${uid}_`) && (f.endsWith(".vtt") || f.endsWith(".srt"))
+      (f) => f.startsWith(`sub_${uid}`) && (f.endsWith(".vtt") || f.endsWith(".srt"))
     );
     if (subFiles.length === 0)
       return res.status(404).json({ error: "Nessun sottotitolo disponibile per questo video" });
     const preferred = subFiles.find((f) => f.includes(`.${lang}.`) || f.includes(`-${lang}.`)) || subFiles[0];
     const rawContent = fs.readFileSync(path.join(tmpDir, preferred), "utf-8");
     const plainText = cleanSubtitles(rawContent);
-    const titleMatch = preferred.replace(`sub_${uid}_`, "").replace(/\.[a-z-]+\.vtt$/, "").replace(/\.vtt$/, "");
     subFiles.forEach((f) => fs.unlink(path.join(tmpDir, f), () => {}));
-    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(titleMatch + "_sottotitoli.txt")}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="sottotitoli_${lang}.txt"`);
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.send(plainText);
   } catch (e) {
     try {
-      fs.readdirSync(tmpDir).filter((f) => f.startsWith(`sub_${uid}_`)).forEach((f) => fs.unlink(path.join(tmpDir, f), () => {}));
+      fs.readdirSync(tmpDir).filter((f) => f.startsWith(`sub_${uid}`)).forEach((f) => fs.unlink(path.join(tmpDir, f), () => {}));
     } catch {}
     if (!res.headersSent) res.status(500).json({ error: friendlyError(e.message) });
   }
