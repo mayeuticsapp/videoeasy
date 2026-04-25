@@ -4,15 +4,61 @@ const path = require("path");
 const fs = require("fs");
 const os = require("os");
 const crypto = require("crypto");
+const { Pool } = require("pg");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const YTDLP_BIN = path.resolve(__dirname, "bin/yt-dlp");
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
+// --- Database ---
+
+let pool = null;
+if (process.env.DATABASE_URL) {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+  pool.query(`
+    CREATE TABLE IF NOT EXISTS video_downloads (
+      id SERIAL PRIMARY KEY,
+      url TEXT,
+      platform TEXT,
+      title TEXT,
+      success BOOLEAN,
+      error TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `).then(() => console.log("DB pronto")).catch((e) => console.error("DB init error:", e.message));
+}
+
+async function logDownload(url, platform, title, success, error = null) {
+  if (!pool) return;
+  try {
+    await pool.query(
+      "INSERT INTO video_downloads (url, platform, title, success, error) VALUES ($1, $2, $3, $4, $5)",
+      [url, platform || "unknown", title || "", success, error]
+    );
+  } catch (e) {
+    console.error("DB log error:", e.message);
+  }
+}
+
 // --- Helpers ---
+
+function detectPlatform(url) {
+  if (/youtu\.?be|youtube\.com/i.test(url)) return "YouTube";
+  if (/instagram\.com/i.test(url)) return "Instagram";
+  if (/tiktok\.com/i.test(url)) return "TikTok";
+  if (/facebook\.com|fb\.watch/i.test(url)) return "Facebook";
+  if (/twitter\.com|x\.com/i.test(url)) return "Twitter/X";
+  if (/vimeo\.com/i.test(url)) return "Vimeo";
+  if (/reddit\.com/i.test(url)) return "Reddit";
+  return "Altro";
+}
 
 function runYtDlp(args) {
   return new Promise((resolve, reject) => {
@@ -62,21 +108,28 @@ function cleanSubtitles(raw) {
 function friendlyError(msg) {
   if (!msg) return "Errore sconosciuto";
   if (msg.includes("429") || msg.toLowerCase().includes("too many requests"))
-    return "Troppe richieste a YouTube. Aspetta 30 secondi e riprova.";
-  if (msg.toLowerCase().includes("private") || msg.toLowerCase().includes("sign in"))
-    return "Video privato o che richiede accesso. Non scaricabile.";
+    return "Troppe richieste. Aspetta 30 secondi e riprova.";
+  if (msg.toLowerCase().includes("private") || msg.toLowerCase().includes("sign in") || msg.toLowerCase().includes("bot"))
+    return "YouTube ha bloccato il server. Riprova tra qualche minuto.";
   if (msg.toLowerCase().includes("no video formats"))
-    return "Nessun formato video disponibile. Potrebbe richiedere login.";
+    return "Nessun formato video disponibile.";
   return msg;
 }
 
-// --- Routes ---
-
-const YOUTUBE_ARGS = ["--extractor-args", "youtube:player_client=ios,web", "--user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"];
+const YOUTUBE_ARGS = [
+  "--extractor-args", "youtube:player_client=ios,web",
+  "--user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+];
 
 function isYouTube(url) {
   return /youtu\.?be|youtube\.com/i.test(url);
 }
+
+// --- Routes ---
+
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "admin.html"));
+});
 
 app.get("/api/info", async (req, res) => {
   const url = req.query.url;
@@ -109,6 +162,7 @@ app.get("/api/download", (req, res) => {
   const rawTitle = (req.query.title || "video").toString().trim();
   const safeTitle = rawTitle.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").slice(0, 80);
   const filename = `${safeTitle}.mp4`;
+  const platform = detectPlatform(url);
 
   const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
   const bin = fs.existsSync(YTDLP_BIN) ? YTDLP_BIN : "yt-dlp";
@@ -125,14 +179,26 @@ app.get("/api/download", (req, res) => {
   ]);
 
   let stderr = "";
+  let bytesSent = 0;
+
   proc.stderr.on("data", (d) => (stderr += d.toString()));
+
+  proc.stdout.on("data", (chunk) => {
+    bytesSent += chunk.length;
+  });
 
   proc.stdout.pipe(res);
 
   proc.on("close", (code) => {
-    if (code !== 0 && !res.headersSent) {
+    if (code === 0) {
+      logDownload(url, platform, rawTitle, true);
+    } else {
       const errorLine = stderr.split("\n").filter((l) => l.includes("ERROR")).pop() || stderr.slice(-400);
-      res.status(500).json({ error: friendlyError(errorLine.replace(/^.*ERROR:\s*/, "")) });
+      const errMsg = friendlyError(errorLine.replace(/^.*ERROR:\s*/, ""));
+      logDownload(url, platform, rawTitle, false, errMsg);
+      if (!res.headersSent) {
+        res.status(500).json({ error: errMsg });
+      }
     }
   });
 
@@ -145,7 +211,7 @@ app.get("/api/subtitles", async (req, res) => {
   if (!url) return res.status(400).json({ error: "URL mancante" });
   const tmpDir = os.tmpdir();
   const uid = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
-  const outputTemplate = path.join(tmpDir, `sub_${uid}_%(title)s.%(ext)s`);
+  const outputTemplate = path.join(tmpDir, `sub_${uid}.%(ext)s`);
   try {
     const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
     await runYtDlp([
@@ -154,29 +220,50 @@ app.get("/api/subtitles", async (req, res) => {
       "--sub-format", "vtt/srt/best",
       "--convert-subs", "vtt",
       "--skip-download", "--no-playlist",
-      "--sleep-requests", "2",
       ...extra,
       "-o", outputTemplate,
       url,
     ]);
     const subFiles = fs.readdirSync(tmpDir).filter(
-      (f) => f.startsWith(`sub_${uid}_`) && (f.endsWith(".vtt") || f.endsWith(".srt"))
+      (f) => f.startsWith(`sub_${uid}`) && (f.endsWith(".vtt") || f.endsWith(".srt"))
     );
     if (subFiles.length === 0)
       return res.status(404).json({ error: "Nessun sottotitolo disponibile per questo video" });
     const preferred = subFiles.find((f) => f.includes(`.${lang}.`) || f.includes(`-${lang}.`)) || subFiles[0];
     const rawContent = fs.readFileSync(path.join(tmpDir, preferred), "utf-8");
     const plainText = cleanSubtitles(rawContent);
-    const titleMatch = preferred.replace(`sub_${uid}_`, "").replace(/\.[a-z-]+\.vtt$/, "").replace(/\.vtt$/, "");
     subFiles.forEach((f) => fs.unlink(path.join(tmpDir, f), () => {}));
-    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(titleMatch + "_sottotitoli.txt")}"`);
+    res.setHeader("Content-Disposition", `attachment; filename="sottotitoli_${lang}.txt"`);
     res.setHeader("Content-Type", "text/plain; charset=utf-8");
     res.send(plainText);
   } catch (e) {
     try {
-      fs.readdirSync(tmpDir).filter((f) => f.startsWith(`sub_${uid}_`)).forEach((f) => fs.unlink(path.join(tmpDir, f), () => {}));
+      fs.readdirSync(tmpDir).filter((f) => f.startsWith(`sub_${uid}`)).forEach((f) => fs.unlink(path.join(tmpDir, f), () => {}));
     } catch {}
     if (!res.headersSent) res.status(500).json({ error: friendlyError(e.message) });
+  }
+});
+
+// --- Admin ---
+
+app.get("/api/admin/stats", async (req, res) => {
+  if (req.query.key !== ADMIN_PASSWORD) return res.status(401).json({ error: "Non autorizzato" });
+  if (!pool) return res.status(503).json({ error: "Database non configurato" });
+  try {
+    const [totals, platforms, recent, daily] = await Promise.all([
+      pool.query("SELECT COUNT(*) as total, SUM(CASE WHEN success THEN 1 ELSE 0 END) as successes, SUM(CASE WHEN NOT success THEN 1 ELSE 0 END) as failures FROM video_downloads"),
+      pool.query("SELECT platform, COUNT(*) as count FROM video_downloads GROUP BY platform ORDER BY count DESC"),
+      pool.query("SELECT title, platform, success, error, created_at FROM video_downloads ORDER BY created_at DESC LIMIT 20"),
+      pool.query("SELECT DATE(created_at) as day, COUNT(*) as count FROM video_downloads WHERE created_at > NOW() - INTERVAL '30 days' GROUP BY day ORDER BY day DESC"),
+    ]);
+    res.json({
+      totals: totals.rows[0],
+      platforms: platforms.rows,
+      recent: recent.rows,
+      daily: daily.rows,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
