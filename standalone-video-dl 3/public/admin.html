@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Video Downloader</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #000; color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      min-height: 100vh; padding: 32px 16px;
+    }
+    .wrap { width: 100%; max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .sub { font-size: 13px; color: #555; margin-bottom: 32px; }
+
+    /* Login */
+    .login-box {
+      background: #111; border: 1px solid #222; border-radius: 18px;
+      padding: 32px; max-width: 360px; margin: 80px auto;
+    }
+    .login-box h2 { font-size: 18px; margin-bottom: 20px; }
+    .login-box input {
+      width: 100%; background: #000; border: 1px solid #333; border-radius: 12px;
+      padding: 12px 16px; color: #fff; font-size: 14px; outline: none; margin-bottom: 12px;
+    }
+    .login-box button {
+      width: 100%; background: #00FF85; color: #000; border: none; border-radius: 12px;
+      padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer;
+    }
+    .err { color: #f87171; font-size: 13px; margin-top: 8px; }
+
+    /* Stats grid */
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card {
+      background: #111; border: 1px solid #1e1e1e; border-radius: 16px; padding: 20px;
+    }
+    .stat-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .stat-value { font-size: 32px; font-weight: 700; }
+    .stat-value.green { color: #00FF85; }
+    .stat-value.red { color: #f87171; }
+
+    /* Table */
+    .section { margin-bottom: 32px; }
+    .section-title { font-size: 13px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 12px; color: #444; font-weight: 500; border-bottom: 1px solid #1a1a1a; }
+    td { padding: 10px 12px; border-bottom: 1px solid #111; color: #ccc; }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 999px;
+      text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
+    }
+    .badge-ok { background: rgba(0,255,133,0.1); color: #00FF85; }
+    .badge-err { background: rgba(248,113,113,0.1); color: #f87171; }
+    .platform-bar {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
+    }
+    .platform-name { width: 100px; font-size: 13px; color: #aaa; }
+    .bar-wrap { flex: 1; background: #1a1a1a; border-radius: 999px; height: 6px; }
+    .bar-fill { height: 6px; border-radius: 999px; background: #00FF85; }
+    .platform-count { font-size: 12px; color: #555; width: 40px; text-align: right; }
+
+    .refresh-btn {
+      background: #1a1a1a; color: #aaa; border: 1px solid #2a2a2a; border-radius: 10px;
+      padding: 8px 16px; font-size: 12px; cursor: pointer; margin-bottom: 24px;
+    }
+    .refresh-btn:hover { background: #222; }
+    .no-db { color: #555; font-size: 14px; padding: 40px; text-align: center; background: #111; border-radius: 16px; }
+  </style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="login-box" id="loginBox">
+    <h2>Accesso Admin</h2>
+    <input type="password" id="pwdInput" placeholder="Password" />
+    <button onclick="login()">Entra</button>
+    <div class="err hidden" id="loginErr">Password errata</div>
+  </div>
+</div>
+
+<script>
+  let adminKey = localStorage.getItem("adminKey") || "";
+
+  if (adminKey) loadDashboard();
+
+  document.getElementById("pwdInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") login();
+  });
+
+  function login() {
+    const pwd = document.getElementById("pwdInput").value.trim();
+    if (!pwd) return;
+    adminKey = pwd;
+    loadDashboard();
+  }
+
+  async function loadDashboard() {
+    const res = await fetch(`/api/admin/stats?key=${encodeURIComponent(adminKey)}`);
+    if (res.status === 401) {
+      localStorage.removeItem("adminKey");
+      document.getElementById("loginErr") && document.getElementById("loginErr").classList.remove("hidden");
+      return;
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      renderError(data.error || "Errore server");
+      return;
+    }
+    localStorage.setItem("adminKey", adminKey);
+    const data = await res.json();
+    renderDashboard(data);
+  }
+
+  function renderError(msg) {
+    document.getElementById("app").innerHTML = `<div class="no-db">${msg}</div>`;
+  }
+
+  function renderDashboard(data) {
+    const { totals, platforms, recent, daily } = data;
+    const successRate = totals.total > 0 ? Math.round((totals.successes / totals.total) * 100) : 0;
+    const maxPlatform = platforms.length > 0 ? Math.max(...platforms.map(p => parseInt(p.count))) : 1;
+
+    const platformBars = platforms.map(p => `
+      <div class="platform-bar">
+        <span class="platform-name">${p.platform}</span>
+        <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round((parseInt(p.count)/maxPlatform)*100)}%"></div></div>
+        <span class="platform-count">${p.count}</span>
+      </div>
+    `).join("");
+
+    const recentRows = recent.map(r => `
+      <tr>
+        <td>${r.title ? r.title.slice(0, 45) + (r.title.length > 45 ? "…" : "") : "—"}</td>
+        <td>${r.platform || "—"}</td>
+        <td><span class="badge ${r.success ? "badge-ok" : "badge-err"}">${r.success ? "OK" : "Errore"}</span></td>
+        <td style="color:#444">${new Date(r.created_at).toLocaleString("it-IT")}</td>
+      </tr>
+    `).join("");
+
+    document.getElementById("app").innerHTML = `
+      <h1>Dashboard Admin</h1>
+      <div class="sub">Video Downloader · <a href="/" style="color:#555">← Torna all'app</a></div>
+      <button class="refresh-btn" onclick="loadDashboard()">↻ Aggiorna</button>
+
+      <div class="grid">
+        <div class="stat-card">
+          <div class="stat-label">Download totali</div>
+          <div class="stat-value">${totals.total || 0}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Completati</div>
+          <div class="stat-value green">${totals.successes || 0}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Errori</div>
+          <div class="stat-value red">${totals.failures || 0}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Tasso successo</div>
+          <div class="stat-value ${successRate >= 80 ? "green" : "red"}">${successRate}%</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">Download per piattaforma</div>
+        ${platformBars || '<div style="color:#444;font-size:13px">Nessun dato ancora</div>'}
+      </div>
+
+      <div class="section">
+        <div class="section-title">Ultimi 20 download</div>
+        <table>
+          <thead><tr><th>Titolo</th><th>Piattaforma</th><th>Stato</th><th>Data</th></tr></thead>
+          <tbody>${recentRows || '<tr><td colspan="4" style="color:#444">Nessun download ancora</td></tr>'}</tbody>
+        </table>
+      </div>
+    `;
+  }
+</script>
+</body>
+</html>
