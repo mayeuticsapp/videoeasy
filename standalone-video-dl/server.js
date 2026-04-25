@@ -31,7 +31,11 @@ if (process.env.DATABASE_URL) {
       success BOOLEAN,
       error TEXT,
       created_at TIMESTAMPTZ DEFAULT NOW()
-    )
+    );
+    CREATE TABLE IF NOT EXISTS page_visits (
+      id SERIAL PRIMARY KEY,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
   `).then(() => console.log("DB pronto")).catch((e) => console.error("DB init error:", e.message));
 }
 
@@ -125,7 +129,33 @@ function isYouTube(url) {
   return /youtu\.?be|youtube\.com/i.test(url);
 }
 
+const VISIT_OFFSET = 677;
+const DOWNLOAD_OFFSET = 540;
+
 // --- Routes ---
+
+app.get("/api/stats", async (req, res) => {
+  if (!pool) return res.json({ visits: VISIT_OFFSET, downloads: DOWNLOAD_OFFSET });
+  try {
+    const [visits, downloads] = await Promise.all([
+      pool.query("SELECT COUNT(*) as count FROM page_visits"),
+      pool.query("SELECT COUNT(*) as count FROM video_downloads WHERE success = true"),
+    ]);
+    res.json({
+      visits: parseInt(visits.rows[0].count) + VISIT_OFFSET,
+      downloads: parseInt(downloads.rows[0].count) + DOWNLOAD_OFFSET,
+    });
+  } catch (e) {
+    res.json({ visits: VISIT_OFFSET, downloads: DOWNLOAD_OFFSET });
+  }
+});
+
+app.post("/api/visit", async (req, res) => {
+  if (pool) {
+    pool.query("INSERT INTO page_visits (created_at) VALUES (NOW())").catch(() => {});
+  }
+  res.json({ ok: true });
+});
 
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
@@ -250,17 +280,19 @@ app.get("/api/admin/stats", async (req, res) => {
   if (req.query.key !== ADMIN_PASSWORD) return res.status(401).json({ error: "Non autorizzato" });
   if (!pool) return res.status(503).json({ error: "Database non configurato" });
   try {
-    const [totals, platforms, recent, daily] = await Promise.all([
+    const [totals, platforms, recent, daily, visits] = await Promise.all([
       pool.query("SELECT COUNT(*) as total, SUM(CASE WHEN success THEN 1 ELSE 0 END) as successes, SUM(CASE WHEN NOT success THEN 1 ELSE 0 END) as failures FROM video_downloads"),
       pool.query("SELECT platform, COUNT(*) as count FROM video_downloads GROUP BY platform ORDER BY count DESC"),
-      pool.query("SELECT title, platform, success, error, created_at FROM video_downloads ORDER BY created_at DESC LIMIT 20"),
+      pool.query("SELECT title, platform, success, error, created_at FROM video_downloads ORDER BY created_at DESC LIMIT 500"),
       pool.query("SELECT DATE(created_at) as day, COUNT(*) as count FROM video_downloads WHERE created_at > NOW() - INTERVAL '30 days' GROUP BY day ORDER BY day DESC"),
+      pool.query("SELECT COUNT(*) as total, SUM(CASE WHEN created_at > NOW() - INTERVAL '24 hours' THEN 1 ELSE 0 END) as today, SUM(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 ELSE 0 END) as week FROM page_visits"),
     ]);
     res.json({
       totals: totals.rows[0],
       platforms: platforms.rows,
       recent: recent.rows,
       daily: daily.rows,
+      visits: visits.rows[0],
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
