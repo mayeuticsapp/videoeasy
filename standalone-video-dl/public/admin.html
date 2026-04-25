@@ -139,10 +139,13 @@
 
     const recentRows = recent.map(r => `
       <tr>
-        <td>${r.title ? r.title.slice(0, 45) + (r.title.length > 45 ? "…" : "") : "—"}</td>
+        <td>
+          <div style="font-size:13px;color:#ccc;margin-bottom:3px">${r.title || "—"}</div>
+          ${r.url ? `<a href="${r.url}" target="_blank" rel="noopener" style="font-size:11px;color:#444;word-break:break-all;text-decoration:none" onmouseover="this.style.color='#00FF85'" onmouseout="this.style.color='#444'">${r.url}</a>` : ""}
+        </td>
         <td>${r.platform || "—"}</td>
         <td><span class="badge ${r.success ? "badge-ok" : "badge-err"}">${r.success ? "OK" : "Errore"}</span></td>
-        <td style="color:#444">${new Date(r.created_at).toLocaleString("it-IT")}</td>
+        <td style="color:#444;white-space:nowrap">${new Date(r.created_at).toLocaleString("it-IT")}</td>
       </tr>
     `).join("");
 
