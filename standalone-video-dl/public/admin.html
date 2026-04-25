@@ -82,6 +82,7 @@
 
 <script>
   let adminKey = localStorage.getItem("adminKey") || "";
+  let autoLogin = !!adminKey;
 
   if (adminKey) loadDashboard();
 
@@ -93,6 +94,7 @@
     const pwd = document.getElementById("pwdInput").value.trim();
     if (!pwd) return;
     adminKey = pwd;
+    autoLogin = false;
     loadDashboard();
   }
 
@@ -100,7 +102,12 @@
     const res = await fetch(`/api/admin/stats?key=${encodeURIComponent(adminKey)}`);
     if (res.status === 401) {
       localStorage.removeItem("adminKey");
-      document.getElementById("loginErr") && document.getElementById("loginErr").classList.remove("hidden");
+      adminKey = "";
+      if (!autoLogin) {
+        const errEl = document.getElementById("loginErr");
+        if (errEl) errEl.classList.remove("hidden");
+      }
+      autoLogin = false;
       return;
     }
     if (!res.ok) {
@@ -118,7 +125,7 @@
   }
 
   function renderDashboard(data) {
-    const { totals, platforms, recent, daily } = data;
+    const { totals, platforms, recent, daily, visits = {} } = data;
     const successRate = totals.total > 0 ? Math.round((totals.successes / totals.total) * 100) : 0;
     const maxPlatform = platforms.length > 0 ? Math.max(...platforms.map(p => parseInt(p.count))) : 1;
 
@@ -146,6 +153,18 @@
 
       <div class="grid">
         <div class="stat-card">
+          <div class="stat-label">Visite totali</div>
+          <div class="stat-value">${visits.total || 0}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Visite oggi</div>
+          <div class="stat-value">${visits.today || 0}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Visite ultimi 7 giorni</div>
+          <div class="stat-value">${visits.week || 0}</div>
+        </div>
+        <div class="stat-card">
           <div class="stat-label">Download totali</div>
           <div class="stat-value">${totals.total || 0}</div>
         </div>
@@ -169,7 +188,7 @@
       </div>
 
       <div class="section">
-        <div class="section-title">Ultimi 20 download</div>
+        <div class="section-title">Ultimi ${recent.length} download (di ${totals.total} totali)</div>
         <table>
           <thead><tr><th>Titolo</th><th>Piattaforma</th><th>Stato</th><th>Data</th></tr></thead>
           <tbody>${recentRows || '<tr><td colspan="4" style="color:#444">Nessun download ancora</td></tr>'}</tbody>

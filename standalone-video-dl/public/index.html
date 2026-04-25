@@ -115,6 +115,13 @@
       font-size: 11px; background: #0a0a0a; color: #444;
       padding: 4px 12px; border-radius: 999px; border: 1px solid #1a1a1a;
     }
+    .counters {
+      display: flex; justify-content: center; gap: 24px;
+      margin-top: 20px; padding-top: 20px; border-top: 1px solid #111;
+    }
+    .counter-item { text-align: center; }
+    .counter-num { font-size: 20px; font-weight: 700; color: #00FF85; }
+    .counter-lbl { font-size: 10px; color: #444; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
 
     .spinner {
       width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.2);
@@ -206,12 +213,29 @@
       <span class="tag">Twitter/X</span><span class="tag">Vimeo</span>
       <span class="tag">Reddit</span><span class="tag">+1000 altri</span>
     </div>
+    <div class="counters" id="counters"></div>
   </div>
 </div>
 
 <script>
   let currentUrl = "";
   let currentTitle = "";
+
+  fetch("/api/visit", { method: "POST" }).catch(() => {});
+
+  fetch("/api/stats").then(r => r.json()).then(data => {
+    const el = document.getElementById("counters");
+    if (el) el.innerHTML = `
+      <div class="counter-item">
+        <div class="counter-num">${data.visits.toLocaleString("it-IT")}</div>
+        <div class="counter-lbl">Visite</div>
+      </div>
+      <div class="counter-item">
+        <div class="counter-num">${data.downloads.toLocaleString("it-IT")}</div>
+        <div class="counter-lbl">Download</div>
+      </div>
+    `;
+  }).catch(() => {});
 
   const urlInput = document.getElementById("urlInput");
   const clearBtn = document.getElementById("clearBtn");
