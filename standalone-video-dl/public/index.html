@@ -211,6 +211,7 @@
 
 <script>
   let currentUrl = "";
+  let currentTitle = "";
 
   const urlInput = document.getElementById("urlInput");
   const clearBtn = document.getElementById("clearBtn");
@@ -251,6 +252,7 @@
     hideError();
     platforms.classList.remove("hidden");
     currentUrl = "";
+    currentTitle = "";
   }
 
   function formatDuration(secs) {
@@ -272,6 +274,24 @@
     }
   }
 
+  async function fetchWithRetry(url, maxRetries = 3, delayMs = 8000) {
+    for (let i = 0; i < maxRetries; i++) {
+      const res = await fetch(url);
+      const ct = res.headers.get("content-type") || "";
+      if (!ct.includes("application/json")) {
+        if (i < maxRetries - 1) {
+          showError(`Server in avvio, riprovo tra ${delayMs / 1000} secondi... (${i + 1}/${maxRetries})`);
+          await new Promise(r => setTimeout(r, delayMs));
+          continue;
+        }
+        throw new Error("Il server sta partendo. Riprova tra 30 secondi.");
+      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore sconosciuto");
+      return data;
+    }
+  }
+
   async function analyzeVideo() {
     const url = urlInput.value.trim();
     if (!url) return;
@@ -283,11 +303,10 @@
     setLoading(analyzeBtn, true, "Analizza video");
 
     try {
-      const res = await fetch(`/api/info?url=${encodeURIComponent(url)}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Errore sconosciuto");
+      const data = await fetchWithRetry(`/api/info?url=${encodeURIComponent(url)}`);
 
       // Popola card
+      currentTitle = data.title || "";
       document.getElementById("thumb").src = data.thumbnail || "";
       document.getElementById("videoTitle").textContent = data.title || "";
       document.getElementById("uploader").textContent = data.uploader || "";
@@ -348,7 +367,7 @@
     setLoading(dlBtn, true, defaultContent);
     hideError();
     try {
-      const res = await fetch(`/api/download?url=${encodeURIComponent(currentUrl)}`);
+      const res = await fetch(`/api/download?url=${encodeURIComponent(currentUrl)}&title=${encodeURIComponent(currentTitle)}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: "Errore server" }));
         throw new Error(data.error || "Download fallito");
