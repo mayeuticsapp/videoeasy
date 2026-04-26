@@ -6,13 +6,13 @@
   <title>Video Downloader</title>
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Video DL" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #000;
-      color: #fff;
+      background: #f4f6f8;
+      color: #111827;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       min-height: 100vh;
       display: flex;
@@ -23,27 +23,28 @@
     .header { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
     .logo {
       width: 42px; height: 42px; border-radius: 12px;
-      background: #00FF85; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      background: #16a34a; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
     }
     .logo svg { width: 22px; height: 22px; }
-    .title { font-size: 20px; font-weight: 700; }
-    .subtitle { font-size: 12px; color: #555; margin-top: 2px; }
+    .title { font-size: 20px; font-weight: 700; color: #111827; }
+    .subtitle { font-size: 12px; color: #6b7280; margin-top: 2px; }
 
     .input-box {
       display: flex; align-items: center; gap: 10px;
-      background: #111; border: 1px solid #222; border-radius: 18px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 18px;
       padding: 12px 16px; margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
-    .input-box svg { width: 16px; height: 16px; color: #555; flex-shrink: 0; }
+    .input-box svg { width: 16px; height: 16px; color: #9ca3af; flex-shrink: 0; }
     .input-box input {
       flex: 1; background: transparent; border: none; outline: none;
-      color: #fff; font-size: 14px;
+      color: #111827; font-size: 14px;
     }
-    .input-box input::placeholder { color: #444; }
+    .input-box input::placeholder { color: #9ca3af; }
     .clear-btn {
-      background: none; border: none; color: #444; cursor: pointer; padding: 2px; line-height: 0;
+      background: none; border: none; color: #9ca3af; cursor: pointer; padding: 2px; line-height: 0;
     }
-    .clear-btn:hover { color: #888; }
+    .clear-btn:hover { color: #6b7280; }
 
     .btn-main {
       width: 100%; padding: 14px; border-radius: 18px; border: none;
@@ -52,79 +53,80 @@
       transition: opacity 0.2s;
     }
     .btn-main:disabled { opacity: 0.5; cursor: default; }
-    .btn-green { background: #00FF85; color: #000; }
-    .btn-dark { background: #1a1a1a; color: #444; }
+    .btn-green { background: #16a34a; color: #fff; }
+    .btn-dark { background: #e5e7eb; color: #9ca3af; }
 
     .btn-secondary {
       flex: 1; padding: 10px 12px; border-radius: 12px;
-      border: 1px solid #2a2a2a; background: #111; color: #aaa;
+      border: 1px solid #e5e7eb; background: #f9fafb; color: #374151;
       font-size: 12px; font-weight: 600; cursor: pointer;
       display: flex; align-items: center; justify-content: center; gap: 6px;
       transition: background 0.2s;
     }
-    .btn-secondary:hover { background: #1a1a1a; }
+    .btn-secondary:hover { background: #f3f4f6; }
     .btn-secondary:disabled { opacity: 0.5; cursor: default; }
 
     .btn-text {
       width: 100%; padding: 8px; background: none; border: none;
-      color: #444; font-size: 12px; cursor: pointer; margin-top: 4px;
+      color: #9ca3af; font-size: 12px; cursor: pointer; margin-top: 4px;
     }
-    .btn-text:hover { color: #888; }
+    .btn-text:hover { color: #6b7280; }
 
     .error-box {
       margin-top: 16px; padding: 14px 16px;
-      background: #1a0505; border: 1px solid #5a1a1a;
-      border-radius: 16px; color: #f87171; font-size: 13px; line-height: 1.5;
+      background: #fef2f2; border: 1px solid #fecaca;
+      border-radius: 16px; color: #dc2626; font-size: 13px; line-height: 1.5;
     }
     .card {
-      margin-top: 16px; background: #111; border: 1px solid #222;
+      margin-top: 16px; background: #fff; border: 1px solid #e5e7eb;
       border-radius: 18px; overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
     .thumb-wrap { position: relative; }
     .thumb-wrap img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; }
     .duration-badge {
       position: absolute; bottom: 8px; right: 8px;
-      background: rgba(0,0,0,0.8); color: #fff;
+      background: rgba(0,0,0,0.7); color: #fff;
       font-size: 11px; padding: 2px 8px; border-radius: 6px;
       font-family: monospace;
     }
     .card-body { padding: 14px 16px 4px; }
-    .video-title { font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; }
-    .uploader { font-size: 12px; color: #555; }
+    .video-title { font-size: 14px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; color: #111827; }
+    .uploader { font-size: 12px; color: #6b7280; }
     .badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
     .badge {
       font-size: 10px; padding: 2px 10px; border-radius: 999px;
       text-transform: uppercase; letter-spacing: 0.05em;
     }
-    .badge-gray { background: #1a1a1a; color: #666; }
-    .badge-green { background: rgba(0,255,133,0.1); color: #00FF85; }
-    .badge-auto { background: rgba(255,255,255,0.05); color: #888; }
+    .badge-gray { background: #f3f4f6; color: #6b7280; }
+    .badge-green { background: #dcfce7; color: #16a34a; }
+    .badge-auto { background: #f3f4f6; color: #9ca3af; }
 
     .card-actions { padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
     .sub-row { display: flex; gap: 8px; }
     select.lang-sel {
-      background: #1a1a1a; color: #aaa; border: 1px solid #2a2a2a;
+      background: #f9fafb; color: #374151; border: 1px solid #e5e7eb;
       border-radius: 12px; padding: 8px 12px; font-size: 12px; outline: none;
       flex-shrink: 0;
     }
 
     .platforms { margin-top: 32px; text-align: center; }
-    .platforms p { font-size: 12px; color: #333; margin-bottom: 10px; }
+    .platforms p { font-size: 12px; color: #9ca3af; margin-bottom: 10px; }
     .tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
     .tag {
-      font-size: 11px; background: #0a0a0a; color: #444;
-      padding: 4px 12px; border-radius: 999px; border: 1px solid #1a1a1a;
+      font-size: 11px; background: #fff; color: #6b7280;
+      padding: 4px 12px; border-radius: 999px; border: 1px solid #e5e7eb;
     }
     .counters {
       display: flex; justify-content: center; gap: 24px;
-      margin-top: 20px; padding-top: 20px; border-top: 1px solid #111;
+      margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb;
     }
     .counter-item { text-align: center; }
-    .counter-num { font-size: 20px; font-weight: 700; color: #00FF85; }
-    .counter-lbl { font-size: 10px; color: #444; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .counter-num { font-size: 20px; font-weight: 700; color: #16a34a; }
+    .counter-lbl { font-size: 10px; color: #9ca3af; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.05em; }
 
     .spinner {
-      width: 16px; height: 16px; border: 2px solid rgba(0,0,0,0.2);
+      width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
       border-top-color: currentColor; border-radius: 50%;
       animation: spin 0.7s linear infinite; flex-shrink: 0;
     }
@@ -136,7 +138,7 @@
 <div class="wrap">
   <div class="header">
     <div class="logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/>
         <line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/>
         <line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/>
@@ -329,7 +331,6 @@
     try {
       const data = await fetchWithRetry(`/api/info?url=${encodeURIComponent(url)}`);
 
-      // Popola card
       currentTitle = data.title || "";
       document.getElementById("thumb").src = data.thumbnail || "";
       document.getElementById("videoTitle").textContent = data.title || "";
@@ -340,7 +341,6 @@
       if (dur) { durEl.textContent = dur; durEl.classList.remove("hidden"); }
       else durEl.classList.add("hidden");
 
-      // Badges
       const badges = document.getElementById("badges");
       badges.innerHTML = "";
       if (data.extractor) {
@@ -356,7 +356,6 @@
         badges.appendChild(b);
       }
 
-      // Sottotitoli
       const subRow = document.getElementById("subRow");
       const langSel = document.getElementById("langSel");
       if (data.hasSubtitles && data.subLangs && data.subLangs.length > 0) {

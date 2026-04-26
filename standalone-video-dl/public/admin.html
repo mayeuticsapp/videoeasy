@@ -7,67 +7,73 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background: #000; color: #fff;
+      background: #f4f6f8; color: #111827;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       min-height: 100vh; padding: 32px 16px;
     }
-    .wrap { width: 100%; max-width: 900px; margin: 0 auto; }
-    h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-    .sub { font-size: 13px; color: #555; margin-bottom: 32px; }
+    .wrap { width: 100%; max-width: 960px; margin: 0 auto; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; color: #111827; }
+    .sub { font-size: 13px; color: #6b7280; margin-bottom: 32px; }
+    .sub a { color: #6b7280; text-decoration: none; }
+    .sub a:hover { color: #374151; }
 
     /* Login */
     .login-box {
-      background: #111; border: 1px solid #222; border-radius: 18px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 18px;
       padding: 32px; max-width: 360px; margin: 80px auto;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
     }
-    .login-box h2 { font-size: 18px; margin-bottom: 20px; }
+    .login-box h2 { font-size: 18px; margin-bottom: 20px; color: #111827; }
     .login-box input {
-      width: 100%; background: #000; border: 1px solid #333; border-radius: 12px;
-      padding: 12px 16px; color: #fff; font-size: 14px; outline: none; margin-bottom: 12px;
+      width: 100%; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px;
+      padding: 12px 16px; color: #111827; font-size: 14px; outline: none; margin-bottom: 12px;
     }
+    .login-box input:focus { border-color: #16a34a; }
     .login-box button {
-      width: 100%; background: #00FF85; color: #000; border: none; border-radius: 12px;
+      width: 100%; background: #16a34a; color: #fff; border: none; border-radius: 12px;
       padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer;
     }
-    .err { color: #f87171; font-size: 13px; margin-top: 8px; }
+    .login-box button:hover { background: #15803d; }
+    .err { color: #dc2626; font-size: 13px; margin-top: 8px; }
 
     /* Stats grid */
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
     .stat-card {
-      background: #111; border: 1px solid #1e1e1e; border-radius: 16px; padding: 20px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-    .stat-label { font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
-    .stat-value { font-size: 32px; font-weight: 700; }
-    .stat-value.green { color: #00FF85; }
-    .stat-value.red { color: #f87171; }
+    .stat-label { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+    .stat-value { font-size: 32px; font-weight: 700; color: #111827; }
+    .stat-value.green { color: #16a34a; }
+    .stat-value.red { color: #dc2626; }
 
     /* Table */
     .section { margin-bottom: 32px; }
-    .section-title { font-size: 13px; color: #555; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+    .section-title { font-size: 11px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+    .table-wrap { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th { text-align: left; padding: 8px 12px; color: #444; font-weight: 500; border-bottom: 1px solid #1a1a1a; }
-    td { padding: 10px 12px; border-bottom: 1px solid #111; color: #ccc; }
+    th { text-align: left; padding: 10px 14px; color: #6b7280; font-weight: 500; border-bottom: 1px solid #f3f4f6; background: #f9fafb; }
+    td { padding: 12px 14px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: top; }
     tr:last-child td { border-bottom: none; }
     .badge {
       display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 999px;
       text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600;
     }
-    .badge-ok { background: rgba(0,255,133,0.1); color: #00FF85; }
-    .badge-err { background: rgba(248,113,113,0.1); color: #f87171; }
-    .platform-bar {
-      display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
-    }
-    .platform-name { width: 100px; font-size: 13px; color: #aaa; }
-    .bar-wrap { flex: 1; background: #1a1a1a; border-radius: 999px; height: 6px; }
-    .bar-fill { height: 6px; border-radius: 999px; background: #00FF85; }
-    .platform-count { font-size: 12px; color: #555; width: 40px; text-align: right; }
+    .badge-ok { background: #dcfce7; color: #16a34a; }
+    .badge-err { background: #fef2f2; color: #dc2626; }
+    .platform-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .platform-name { width: 100px; font-size: 13px; color: #374151; }
+    .bar-wrap { flex: 1; background: #e5e7eb; border-radius: 999px; height: 6px; }
+    .bar-fill { height: 6px; border-radius: 999px; background: #16a34a; }
+    .platform-count { font-size: 12px; color: #6b7280; width: 40px; text-align: right; }
 
     .refresh-btn {
-      background: #1a1a1a; color: #aaa; border: 1px solid #2a2a2a; border-radius: 10px;
+      background: #fff; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 10px;
       padding: 8px 16px; font-size: 12px; cursor: pointer; margin-bottom: 24px;
     }
-    .refresh-btn:hover { background: #222; }
-    .no-db { color: #555; font-size: 14px; padding: 40px; text-align: center; background: #111; border-radius: 16px; }
+    .refresh-btn:hover { background: #f9fafb; }
+    .no-db { color: #6b7280; font-size: 14px; padding: 40px; text-align: center; background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -99,7 +105,7 @@
   }
 
   async function loadDashboard() {
-    const res = await fetch(`/api/admin/stats?key=${encodeURIComponent(adminKey)}`);
+    const res = await fetch("/api/admin/stats?key=" + encodeURIComponent(adminKey));
     if (res.status === 401) {
       localStorage.removeItem("adminKey");
       adminKey = "";
@@ -121,7 +127,7 @@
   }
 
   function renderError(msg) {
-    document.getElementById("app").innerHTML = `<div class="no-db">${msg}</div>`;
+    document.getElementById("app").innerHTML = "<div class='no-db'>" + msg + "</div>";
   }
 
   function renderDashboard(data) {
@@ -129,75 +135,53 @@
     const successRate = totals.total > 0 ? Math.round((totals.successes / totals.total) * 100) : 0;
     const maxPlatform = platforms.length > 0 ? Math.max(...platforms.map(p => parseInt(p.count))) : 1;
 
-    const platformBars = platforms.map(p => `
-      <div class="platform-bar">
-        <span class="platform-name">${p.platform}</span>
-        <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round((parseInt(p.count)/maxPlatform)*100)}%"></div></div>
-        <span class="platform-count">${p.count}</span>
-      </div>
-    `).join("");
+    const platformBars = platforms.map(p =>
+      "<div class='platform-bar'>" +
+        "<span class='platform-name'>" + p.platform + "</span>" +
+        "<div class='bar-wrap'><div class='bar-fill' style='width:" + Math.round((parseInt(p.count)/maxPlatform)*100) + "%'></div></div>" +
+        "<span class='platform-count'>" + p.count + "</span>" +
+      "</div>"
+    ).join("");
 
     const recentRows = recent.map(r => {
       const urlLink = r.url
-        ? '<a href="' + r.url + '" target="_blank" rel="noopener" style="font-size:11px;color:#00FF85;word-break:break-all;text-decoration:underline;opacity:0.7" onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.7\'">🔗 ' + r.url + '</a>'
-        : '<span style="font-size:11px;color:#333;font-style:italic">nessun link</span>';
+        ? "<a href='" + r.url + "' target='_blank' rel='noopener' style='font-size:11px;color:#16a34a;word-break:break-all;text-decoration:underline'>🔗 " + r.url + "</a>"
+        : "<span style='font-size:11px;color:#9ca3af;font-style:italic'>nessun link</span>";
       return "<tr>" +
-        "<td><div style='font-size:13px;color:#ccc;margin-bottom:4px'>" + (r.title || "—") + "</div>" + urlLink + "</td>" +
-        "<td>" + (r.platform || "—") + "</td>" +
+        "<td><div style='font-size:13px;color:#111827;margin-bottom:4px;line-height:1.4'>" + (r.title || "—") + "</div>" + urlLink + "</td>" +
+        "<td style='white-space:nowrap'>" + (r.platform || "—") + "</td>" +
         "<td><span class='badge " + (r.success ? "badge-ok" : "badge-err") + "'>" + (r.success ? "OK" : "Errore") + "</span></td>" +
-        "<td style='color:#444;white-space:nowrap'>" + new Date(r.created_at).toLocaleString("it-IT") + "</td>" +
+        "<td style='color:#9ca3af;white-space:nowrap'>" + new Date(r.created_at).toLocaleString("it-IT") + "</td>" +
         "</tr>";
     }).join("");
 
-    document.getElementById("app").innerHTML = `
-      <h1>Dashboard Admin</h1>
-      <div class="sub">Video Downloader · <a href="/" style="color:#555">← Torna all'app</a></div>
-      <button class="refresh-btn" onclick="loadDashboard()">↻ Aggiorna</button>
+    document.getElementById("app").innerHTML =
+      "<h1>Dashboard Admin</h1>" +
+      "<div class='sub'>Video Downloader · <a href='/'>← Torna all'app</a></div>" +
+      "<button class='refresh-btn' onclick='loadDashboard()'>↻ Aggiorna</button>" +
 
-      <div class="grid">
-        <div class="stat-card">
-          <div class="stat-label">Visite totali</div>
-          <div class="stat-value">${visits.total || 0}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Visite oggi</div>
-          <div class="stat-value">${visits.today || 0}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Visite ultimi 7 giorni</div>
-          <div class="stat-value">${visits.week || 0}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Download totali</div>
-          <div class="stat-value">${totals.total || 0}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Completati</div>
-          <div class="stat-value green">${totals.successes || 0}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Errori</div>
-          <div class="stat-value red">${totals.failures || 0}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Tasso successo</div>
-          <div class="stat-value ${successRate >= 80 ? "green" : "red"}">${successRate}%</div>
-        </div>
-      </div>
+      "<div class='grid'>" +
+        "<div class='stat-card'><div class='stat-label'>Visite totali</div><div class='stat-value'>" + (visits.total || 0) + "</div></div>" +
+        "<div class='stat-card'><div class='stat-label'>Visite oggi</div><div class='stat-value'>" + (visits.today || 0) + "</div></div>" +
+        "<div class='stat-card'><div class='stat-label'>Visite 7 giorni</div><div class='stat-value'>" + (visits.week || 0) + "</div></div>" +
+        "<div class='stat-card'><div class='stat-label'>Download totali</div><div class='stat-value'>" + (totals.total || 0) + "</div></div>" +
+        "<div class='stat-card'><div class='stat-label'>Completati</div><div class='stat-value green'>" + (totals.successes || 0) + "</div></div>" +
+        "<div class='stat-card'><div class='stat-label'>Errori</div><div class='stat-value red'>" + (totals.failures || 0) + "</div></div>" +
+        "<div class='stat-card'><div class='stat-label'>Tasso successo</div><div class='stat-value " + (successRate >= 80 ? "green" : "red") + "'>" + successRate + "%</div></div>" +
+      "</div>" +
 
-      <div class="section">
-        <div class="section-title">Download per piattaforma</div>
-        ${platformBars || '<div style="color:#444;font-size:13px">Nessun dato ancora</div>'}
-      </div>
+      "<div class='section'>" +
+        "<div class='section-title'>Download per piattaforma</div>" +
+        "<div class='table-wrap' style='padding:16px'>" + (platformBars || "<span style='color:#9ca3af;font-size:13px'>Nessun dato ancora</span>") + "</div>" +
+      "</div>" +
 
-      <div class="section">
-        <div class="section-title">Ultimi ${recent.length} download (di ${totals.total} totali)</div>
-        <table>
-          <thead><tr><th>Titolo</th><th>Piattaforma</th><th>Stato</th><th>Data</th></tr></thead>
-          <tbody>${recentRows || '<tr><td colspan="4" style="color:#444">Nessun download ancora</td></tr>'}</tbody>
-        </table>
-      </div>
-    `;
+      "<div class='section'>" +
+        "<div class='section-title'>Ultimi " + recent.length + " download (di " + totals.total + " totali)</div>" +
+        "<div class='table-wrap'><table>" +
+          "<thead><tr><th>Titolo</th><th>Piattaforma</th><th>Stato</th><th>Data</th></tr></thead>" +
+          "<tbody>" + (recentRows || "<tr><td colspan='4' style='color:#9ca3af'>Nessun download ancora</td></tr>") + "</tbody>" +
+        "</table></div>" +
+      "</div>";
   }
 </script>
 </body>
