@@ -283,7 +283,7 @@ app.get("/api/admin/stats", async (req, res) => {
     const [totals, platforms, recent, daily, visits] = await Promise.all([
       pool.query("SELECT COUNT(*) as total, SUM(CASE WHEN success THEN 1 ELSE 0 END) as successes, SUM(CASE WHEN NOT success THEN 1 ELSE 0 END) as failures FROM video_downloads"),
       pool.query("SELECT platform, COUNT(*) as count FROM video_downloads GROUP BY platform ORDER BY count DESC"),
-      pool.query("SELECT title, platform, success, error, created_at FROM video_downloads ORDER BY created_at DESC LIMIT 500"),
+      pool.query("SELECT url, title, platform, success, error, created_at FROM video_downloads ORDER BY created_at DESC LIMIT 500"),
       pool.query("SELECT DATE(created_at) as day, COUNT(*) as count FROM video_downloads WHERE created_at > NOW() - INTERVAL '30 days' GROUP BY day ORDER BY day DESC"),
       pool.query("SELECT COUNT(*) as total, SUM(CASE WHEN created_at > NOW() - INTERVAL '24 hours' THEN 1 ELSE 0 END) as today, SUM(CASE WHEN created_at > NOW() - INTERVAL '7 days' THEN 1 ELSE 0 END) as week FROM page_visits"),
     ]);
