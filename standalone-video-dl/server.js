@@ -117,6 +117,10 @@ function friendlyError(msg) {
     return "YouTube ha bloccato il server. Riprova tra qualche minuto.";
   if (msg.toLowerCase().includes("no video formats"))
     return "Nessun formato video disponibile.";
+  if (msg.includes("302") || msg.toLowerCase().includes("redirect loop"))
+    return "Impossibile accedere al video. Il link potrebbe richiedere login oppure non è pubblico.";
+  if (msg.toLowerCase().includes("login") || msg.toLowerCase().includes("age") || msg.toLowerCase().includes("restricted"))
+    return "Video non disponibile: richiede login o è soggetto a restrizioni di età.";
   return msg;
 }
 
@@ -159,6 +163,12 @@ function getTxArgs(url) {
   return GENERIC_TX_ARGS;
 }
 
+function getArgs(url) {
+  if (isYouTube(url)) return YOUTUBE_ARGS;
+  if (isFacebook(url)) return FACEBOOK_TX_ARGS;
+  return [];
+}
+
 const VISIT_OFFSET = 677;
 const DOWNLOAD_OFFSET = 540;
 
@@ -195,7 +205,7 @@ app.get("/api/info", async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).json({ error: "URL mancante" });
   try {
-    const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
+    const extra = getArgs(url);
     const raw = await runYtDlp(["--dump-json", "--no-playlist", ...extra, url]);
     const data = JSON.parse(raw);
     const hasSubs = data.subtitles && Object.keys(data.subtitles).length > 0;
@@ -224,7 +234,7 @@ app.get("/api/download", (req, res) => {
   const filename = `${safeTitle}.mp4`;
   const platform = detectPlatform(url);
 
-  const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
+  const extra = getArgs(url);
   const bin = fs.existsSync(YTDLP_BIN) ? YTDLP_BIN : "yt-dlp";
 
   res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`);
