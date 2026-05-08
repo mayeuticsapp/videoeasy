@@ -330,7 +330,7 @@ app.post("/api/transcribe-url", async (req, res) => {
   try {
     const extra = getTxArgs(url);
     await runYtDlp([
-      "-f", "worstaudio/bestaudio",
+      "-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best[ext=mp4]/best",
       "--no-playlist",
       "--no-post-overwrites",
       ...extra,
