@@ -274,6 +274,80 @@ app.get("/api/subtitles", async (req, res) => {
   }
 });
 
+// --- Trascrizione da URL ---
+
+app.post("/api/transcribe-url", async (req, res) => {
+  const { url, lang = "it" } = req.body;
+  if (!url) return res.status(400).json({ error: "URL mancante" });
+
+  const GROQ_KEY = process.env.GROQ_API_KEY;
+  if (!GROQ_KEY) return res.status(500).json({ error: "Groq API key non configurata sul server" });
+
+  const uid = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+  const tmpDir = os.tmpdir();
+  const outputTemplate = path.join(tmpDir, `txaudio_${uid}.%(ext)s`);
+
+  try {
+    const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
+    await runYtDlp([
+      "-f", "worstaudio/bestaudio",
+      "--no-playlist",
+      "--no-post-overwrites",
+      ...extra,
+      "-o", outputTemplate,
+      url,
+    ]);
+
+    const audioFiles = fs.readdirSync(tmpDir).filter((f) => f.startsWith(`txaudio_${uid}`));
+    if (audioFiles.length === 0) throw new Error("Audio non trovato dopo il download");
+
+    const audioPath = path.join(tmpDir, audioFiles[0]);
+    const ext = audioFiles[0].split(".").pop() || "webm";
+    const fileSize = fs.statSync(audioPath).size;
+
+    if (fileSize > 24 * 1024 * 1024) {
+      fs.unlinkSync(audioPath);
+      return res.status(400).json({ error: "Audio troppo grande (max ~25MB). Prova con un video più corto (indicativamente meno di 40 minuti)." });
+    }
+
+    const fileBuffer = fs.readFileSync(audioPath);
+    const mimeMap = { webm: "audio/webm", mp4: "audio/mp4", m4a: "audio/mp4", ogg: "audio/ogg", opus: "audio/ogg", mp3: "audio/mpeg", wav: "audio/wav" };
+    const mimeType = mimeMap[ext] || "audio/webm";
+
+    const formData = new FormData();
+    formData.append("file", new Blob([fileBuffer], { type: mimeType }), "audio." + ext);
+    formData.append("model", "whisper-large-v3");
+    formData.append("language", lang);
+    formData.append("response_format", "text");
+
+    const groqRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${GROQ_KEY}` },
+      body: formData,
+    });
+
+    fs.unlinkSync(audioPath);
+
+    if (!groqRes.ok) {
+      const err = await groqRes.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `Errore Groq ${groqRes.status}`);
+    }
+
+    const text = await groqRes.text();
+    if (!text || !text.trim()) throw new Error("Nessuna trascrizione ottenuta");
+
+    res.json({ text: text.trim() });
+
+  } catch (e) {
+    try {
+      fs.readdirSync(tmpDir).filter((f) => f.startsWith(`txaudio_${uid}`)).forEach((f) => {
+        try { fs.unlinkSync(path.join(tmpDir, f)); } catch {}
+      });
+    } catch {}
+    res.status(500).json({ error: friendlyError(e.message) });
+  }
+});
+
 // --- Admin ---
 
 app.get("/api/admin/stats", async (req, res) => {
