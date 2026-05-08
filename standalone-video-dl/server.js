@@ -113,14 +113,16 @@ function friendlyError(msg) {
   if (!msg) return "Errore sconosciuto";
   if (msg.includes("429") || msg.toLowerCase().includes("too many requests"))
     return "Troppe richieste. Aspetta 30 secondi e riprova.";
+  if (msg.toLowerCase().includes("log in") || msg.toLowerCase().includes("login") || msg.toLowerCase().includes("--cookies"))
+    return "Contenuto non accessibile: richiede accesso all'account. Funziona solo con post pubblici (non Stories, non profili privati).";
   if (msg.toLowerCase().includes("private") || msg.toLowerCase().includes("sign in") || msg.toLowerCase().includes("bot"))
     return "YouTube ha bloccato il server. Riprova tra qualche minuto.";
   if (msg.toLowerCase().includes("no video formats"))
     return "Nessun formato video disponibile.";
   if (msg.includes("302") || msg.toLowerCase().includes("redirect loop"))
     return "Impossibile accedere al video. Il link potrebbe richiedere login oppure non è pubblico.";
-  if (msg.toLowerCase().includes("login") || msg.toLowerCase().includes("age") || msg.toLowerCase().includes("restricted"))
-    return "Video non disponibile: richiede login o è soggetto a restrizioni di età.";
+  if (msg.toLowerCase().includes("age") || msg.toLowerCase().includes("restricted"))
+    return "Video non disponibile: soggetto a restrizioni di età.";
   return msg;
 }
 
