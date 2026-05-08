@@ -125,8 +125,38 @@ const YOUTUBE_ARGS = [
   "--user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
 ];
 
+// Client TV — meno bloccato di iOS per download audio su server cloud
+const YOUTUBE_TX_ARGS = [
+  "--extractor-args", "youtube:player_client=tv_embedded,ios,web",
+  "--user-agent", "Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/538.1 (KHTML, like Gecko) Version/6.0 TV Safari/538.1",
+  "--geo-bypass",
+  "--socket-timeout", "30",
+];
+
+const FACEBOOK_TX_ARGS = [
+  "--add-header", "Accept-Language:en-US,en;q=0.9",
+  "--add-header", "Accept:text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "--no-check-certificates",
+  "--force-ipv4",
+  "--socket-timeout", "30",
+];
+
+const GENERIC_TX_ARGS = [
+  "--socket-timeout", "30",
+];
+
 function isYouTube(url) {
   return /youtu\.?be|youtube\.com/i.test(url);
+}
+
+function isFacebook(url) {
+  return /facebook\.com|fb\.watch/i.test(url);
+}
+
+function getTxArgs(url) {
+  if (isYouTube(url)) return YOUTUBE_TX_ARGS;
+  if (isFacebook(url)) return FACEBOOK_TX_ARGS;
+  return GENERIC_TX_ARGS;
 }
 
 const VISIT_OFFSET = 677;
@@ -288,7 +318,7 @@ app.post("/api/transcribe-url", async (req, res) => {
   const outputTemplate = path.join(tmpDir, `txaudio_${uid}.%(ext)s`);
 
   try {
-    const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
+    const extra = getTxArgs(url);
     await runYtDlp([
       "-f", "worstaudio/bestaudio",
       "--no-playlist",
