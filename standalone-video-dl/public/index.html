@@ -224,6 +224,58 @@
       border-top-color: #9ca3af; border-radius: 50%;
       animation: spin 0.7s linear infinite; flex-shrink: 0;
     }
+
+    /* Merge tab */
+    .merge-list { margin-bottom: 12px; min-height: 48px; }
+    .merge-empty {
+      text-align: center; color: #9ca3af; font-size: 13px; padding: 24px;
+      background: #f9fafb; border-radius: 14px; border: 1.5px dashed #e5e7eb;
+    }
+    .merge-item {
+      display: flex; align-items: center; gap: 10px;
+      background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+      padding: 10px 12px; margin-bottom: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .merge-item-num {
+      width: 22px; height: 22px; background: #16a34a; color: #fff;
+      border-radius: 50%; font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .merge-item-label {
+      flex: 1; font-size: 12px; color: #374151;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .merge-item-badge {
+      font-size: 10px; color: #9ca3af; background: #f3f4f6;
+      padding: 2px 7px; border-radius: 6px; flex-shrink: 0;
+    }
+    .merge-item-remove {
+      background: none; border: none; color: #d1d5db; cursor: pointer;
+      font-size: 16px; padding: 2px 4px; flex-shrink: 0; line-height: 1;
+    }
+    .merge-item-remove:hover { color: #dc2626; }
+    .merge-add-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .merge-url-row {
+      display: flex; gap: 8px; align-items: center;
+      margin-bottom: 12px; animation: fadeIn 0.15s ease;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:none; } }
+    .merge-url-input {
+      flex: 1; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px;
+      padding: 10px 14px; color: #111827; font-size: 13px; outline: none;
+    }
+    .merge-url-input:focus { border-color: #16a34a; }
+    .merge-url-add {
+      padding: 10px 16px; background: #16a34a; color: #fff; border: none;
+      border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    .merge-url-add:hover { background: #15803d; }
+    .merge-progress {
+      text-align: center; color: #6b7280; font-size: 13px; margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .merge-note { font-size: 11px; color: #9ca3af; text-align: center; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -260,6 +312,15 @@
         <line x1="8" y1="22" x2="16" y2="22"/>
       </svg>
       Trascrivi audio
+    </button>
+    <button class="tab-btn" id="tabMerge" onclick="switchTab('merge')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/>
+        <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/>
+        <line x1="12" y1="8" x2="12" y2="16"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+      </svg>
+      Unisci video
     </button>
   </div>
 
@@ -338,6 +399,54 @@
       </div>
       <div class="counters" id="counters"></div>
     </div>
+  </div>
+
+  <!-- ===== TAB: UNISCI VIDEO ===== -->
+  <div class="tab-panel" id="panelMerge">
+    <div class="merge-list" id="mergeList">
+      <div class="merge-empty" id="mergeEmpty">Aggiungi almeno 2 clip per unirle</div>
+    </div>
+
+    <div class="merge-add-row">
+      <button class="btn-secondary" onclick="toggleMergeUrlBox()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        + Aggiungi URL
+      </button>
+      <button class="btn-secondary" onclick="document.getElementById('mergeFileInput').click()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Carica file
+      </button>
+    </div>
+
+    <div class="merge-url-row hidden" id="mergeUrlRow">
+      <input class="merge-url-input" id="mergeUrlInput" type="url" placeholder="Incolla URL del video..." />
+      <button class="merge-url-add" onclick="addMergeUrl()">Aggiungi</button>
+    </div>
+
+    <input type="file" id="mergeFileInput" accept="video/*,video/mp4,video/webm,video/quicktime" multiple class="hidden" onchange="addMergeFiles(this)" />
+
+    <div class="error-box hidden" id="mergeErrorBox"></div>
+    <div class="merge-progress hidden" id="mergeProgress">
+      <div class="spinner" style="border-top-color:#6b7280"></div>
+      Elaborazione in corso... può richiedere qualche minuto
+    </div>
+
+    <button class="btn-main btn-dark" id="mergeBtn" onclick="mergeVideos()" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/>
+        <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/>
+        <line x1="12" y1="8" x2="12" y2="16"/>
+        <line x1="8" y1="12" x2="16" y2="12"/>
+      </svg>
+      Unisci e scarica
+    </button>
+    <p class="merge-note">Limite: max 10 clip · max 200 MB per file caricato · formati MP4, WebM, MOV</p>
   </div>
 
   <!-- ===== TAB: TRASCRIVI ===== -->
@@ -434,10 +543,10 @@
 
   // --- Tab switching ---
   function switchTab(tab) {
-    document.getElementById("tabDownload").classList.toggle("active", tab === "download");
-    document.getElementById("tabTranscribe").classList.toggle("active", tab === "transcribe");
-    document.getElementById("panelDownload").classList.toggle("active", tab === "download");
-    document.getElementById("panelTranscribe").classList.toggle("active", tab === "transcribe");
+    ["download","transcribe","merge"].forEach(t => {
+      document.getElementById("tab" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", tab === t);
+      document.getElementById("panel" + t.charAt(0).toUpperCase() + t.slice(1)).classList.toggle("active", tab === t);
+    });
   }
 
   // --- Download tab refs ---
@@ -528,6 +637,102 @@
     platforms.classList.remove("hidden");
     currentUrl = "";
     currentTitle = "";
+  }
+
+  // --- Merge tab ---
+  let mergeItems = [];
+
+  function renderMergeList() {
+    const list = document.getElementById("mergeList");
+    const btn = document.getElementById("mergeBtn");
+    if (mergeItems.length === 0) {
+      list.innerHTML = "<div class='merge-empty'>Aggiungi almeno 2 clip per unirle</div>";
+      btn.className = "btn-main btn-dark"; btn.disabled = true; return;
+    }
+    list.innerHTML = mergeItems.map((item, i) => `
+      <div class="merge-item">
+        <span class="merge-item-num">${i + 1}</span>
+        <span class="merge-item-label">${item.type === "url" ? item.val : item.name}</span>
+        <span class="merge-item-badge">${item.type === "url" ? "URL" : "File"}</span>
+        <button class="merge-item-remove" onclick="removeMergeItem(${i})">✕</button>
+      </div>`).join("");
+    btn.className = mergeItems.length >= 2 ? "btn-main btn-green" : "btn-main btn-dark";
+    btn.disabled = mergeItems.length < 2;
+  }
+
+  function toggleMergeUrlBox() {
+    const row = document.getElementById("mergeUrlRow");
+    const hidden = row.classList.toggle("hidden");
+    if (!hidden) document.getElementById("mergeUrlInput").focus();
+  }
+
+  function addMergeUrl() {
+    const input = document.getElementById("mergeUrlInput");
+    const val = input.value.trim();
+    if (!val) return;
+    mergeItems.push({ type: "url", val });
+    input.value = "";
+    document.getElementById("mergeUrlRow").classList.add("hidden");
+    renderMergeList();
+  }
+
+  document.getElementById("mergeUrlInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addMergeUrl();
+    if (e.key === "Escape") document.getElementById("mergeUrlRow").classList.add("hidden");
+  });
+
+  function addMergeFiles(input) {
+    for (const file of input.files) mergeItems.push({ type: "file", file, name: file.name });
+    input.value = "";
+    renderMergeList();
+  }
+
+  function removeMergeItem(idx) {
+    mergeItems.splice(idx, 1);
+    renderMergeList();
+  }
+
+  async function mergeVideos() {
+    if (mergeItems.length < 2) return;
+    const btn = document.getElementById("mergeBtn");
+    const progress = document.getElementById("mergeProgress");
+    const errBox = document.getElementById("mergeErrorBox");
+    btn.disabled = true;
+    btn.innerHTML = "<div class='spinner'></div> Elaborazione...";
+    progress.classList.remove("hidden");
+    errBox.classList.add("hidden");
+    try {
+      const formData = new FormData();
+      const items = [];
+      let fileIdx = 0;
+      for (const item of mergeItems) {
+        if (item.type === "url") {
+          items.push({ type: "url", val: item.val });
+        } else {
+          items.push({ type: "file", idx: fileIdx++ });
+          formData.append("files", item.file, item.name);
+        }
+      }
+      formData.append("items", JSON.stringify(items));
+      const res = await fetch("/api/merge", { method: "POST", body: formData });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Errore durante l'unione");
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "video_unito.mp4";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      errBox.textContent = e.message; errBox.classList.remove("hidden");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/><path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> Unisci e scarica`;
+      btn.className = mergeItems.length >= 2 ? "btn-main btn-green" : "btn-main btn-dark";
+      progress.classList.add("hidden");
+    }
   }
 
   function clearTranscription() {
