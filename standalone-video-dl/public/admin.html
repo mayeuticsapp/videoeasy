@@ -67,11 +67,17 @@
     .bar-fill { height: 6px; border-radius: 999px; background: #16a34a; }
     .platform-count { font-size: 12px; color: #6b7280; width: 40px; text-align: right; }
 
+    .refresh-row { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
     .refresh-btn {
       background: #fff; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 10px;
-      padding: 8px 16px; font-size: 12px; cursor: pointer; margin-bottom: 24px;
+      padding: 8px 16px; font-size: 12px; cursor: pointer;
     }
     .refresh-btn:hover { background: #f9fafb; }
+    .refresh-info { font-size: 11px; color: #9ca3af; }
+    .refresh-countdown {
+      display: inline-block; font-size: 11px; color: #9ca3af;
+      background: #f3f4f6; border-radius: 8px; padding: 2px 8px; margin-left: 6px;
+    }
     .no-db { color: #6b7280; font-size: 14px; padding: 40px; text-align: center; background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; }
     .hidden { display: none !important; }
   </style>
@@ -89,6 +95,9 @@
 <script>
   let adminKey = localStorage.getItem("adminKey") || "";
   let autoLogin = !!adminKey;
+  let refreshTimer = null;
+  let countdownTimer = null;
+  let countdown = 30;
 
   if (adminKey) loadDashboard();
 
@@ -104,11 +113,32 @@
     loadDashboard();
   }
 
+  function startAutoRefresh() {
+    clearInterval(refreshTimer);
+    clearInterval(countdownTimer);
+    countdown = 30;
+    updateCountdown();
+    countdownTimer = setInterval(() => {
+      countdown--;
+      updateCountdown();
+      if (countdown <= 0) {
+        countdown = 30;
+        loadDashboard();
+      }
+    }, 1000);
+  }
+
+  function updateCountdown() {
+    const el = document.getElementById("refreshCountdown");
+    if (el) el.textContent = countdown + "s";
+  }
+
   async function loadDashboard() {
     const res = await fetch("/api/admin/stats?key=" + encodeURIComponent(adminKey));
     if (res.status === 401) {
       localStorage.removeItem("adminKey");
       adminKey = "";
+      clearInterval(countdownTimer);
       if (!autoLogin) {
         const errEl = document.getElementById("loginErr");
         if (errEl) errEl.classList.remove("hidden");
@@ -124,9 +154,11 @@
     localStorage.setItem("adminKey", adminKey);
     const data = await res.json();
     renderDashboard(data);
+    startAutoRefresh();
   }
 
   function renderError(msg) {
+    clearInterval(countdownTimer);
     document.getElementById("app").innerHTML = "<div class='no-db'>" + msg + "</div>";
   }
 
@@ -134,6 +166,7 @@
     const { totals, platforms, recent, daily, visits = {} } = data;
     const successRate = totals.total > 0 ? Math.round((totals.successes / totals.total) * 100) : 0;
     const maxPlatform = platforms.length > 0 ? Math.max(...platforms.map(p => parseInt(p.count))) : 1;
+    const now = new Date().toLocaleTimeString("it-IT");
 
     const platformBars = platforms.map(p =>
       "<div class='platform-bar'>" +
@@ -145,7 +178,7 @@
 
     const recentRows = recent.map(r => {
       const urlLink = r.url
-        ? "<a href='" + r.url + "' target='_blank' rel='noopener' style='font-size:11px;color:#16a34a;word-break:break-all;text-decoration:underline'>🔗 " + r.url + "</a>"
+        ? "<a href='" + r.url + "' target='_blank' rel='noopener' style='font-size:11px;color:#16a34a;word-break:break-all;text-decoration:underline'>&#128279; " + r.url + "</a>"
         : "<span style='font-size:11px;color:#9ca3af;font-style:italic'>nessun link</span>";
       return "<tr>" +
         "<td><div style='font-size:13px;color:#111827;margin-bottom:4px;line-height:1.4'>" + (r.title || "—") + "</div>" + urlLink + "</td>" +
@@ -158,7 +191,11 @@
     document.getElementById("app").innerHTML =
       "<h1>Dashboard Admin</h1>" +
       "<div class='sub'>Video Downloader · <a href='/'>← Torna all'app</a></div>" +
-      "<button class='refresh-btn' onclick='loadDashboard()'>↻ Aggiorna</button>" +
+      "<div class='refresh-row'>" +
+        "<button class='refresh-btn' onclick='loadDashboard()'>↻ Aggiorna ora</button>" +
+        "<span class='refresh-info'>Aggiornamento automatico in <span class='refresh-countdown' id='refreshCountdown'>30s</span></span>" +
+        "<span class='refresh-info'>· Ultimo aggiornamento: <strong>" + now + "</strong></span>" +
+      "</div>" +
 
       "<div class='grid'>" +
         "<div class='stat-card'><div class='stat-label'>Visite totali</div><div class='stat-value'>" + (visits.total || 0) + "</div></div>" +
