@@ -205,7 +205,7 @@ app.get("/api/info", async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).json({ error: "URL mancante" });
   try {
-    const extra = getArgs(url);
+    const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
     const raw = await runYtDlp(["--dump-json", "--no-playlist", ...extra, url]);
     const data = JSON.parse(raw);
     const hasSubs = data.subtitles && Object.keys(data.subtitles).length > 0;
@@ -234,7 +234,7 @@ app.get("/api/download", (req, res) => {
   const filename = `${safeTitle}.mp4`;
   const platform = detectPlatform(url);
 
-  const extra = getArgs(url);
+  const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
   const bin = fs.existsSync(YTDLP_BIN) ? YTDLP_BIN : "yt-dlp";
 
   res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`);
