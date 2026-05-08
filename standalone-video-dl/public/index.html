@@ -20,7 +20,7 @@
       padding: 32px 16px;
     }
     .wrap { width: 100%; max-width: 420px; }
-    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
     .logo {
       width: 42px; height: 42px; border-radius: 12px;
       background: #16a34a; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
@@ -28,6 +28,26 @@
     .logo svg { width: 22px; height: 22px; }
     .title { font-size: 20px; font-weight: 700; color: #111827; }
     .subtitle { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+    /* Tabs */
+    .tabs {
+      display: flex; gap: 4px;
+      background: #e5e7eb; border-radius: 14px; padding: 4px;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      flex: 1; padding: 9px 12px; border-radius: 10px;
+      border: none; background: transparent; color: #6b7280;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: #fff; color: #111827;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
 
     .input-box {
       display: flex; align-items: center; gap: 10px;
@@ -54,6 +74,7 @@
     }
     .btn-main:disabled { opacity: 0.5; cursor: default; }
     .btn-green { background: #16a34a; color: #fff; }
+    .btn-purple { background: #7c3aed; color: #fff; }
     .btn-dark { background: #e5e7eb; color: #9ca3af; }
 
     .btn-secondary {
@@ -110,6 +131,49 @@
       flex-shrink: 0;
     }
 
+    /* Transcription panel styles */
+    .tx-lang-row {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .tx-lang-row label { font-size: 12px; color: #6b7280; white-space: nowrap; }
+    select.tx-lang-sel {
+      background: #fff; color: #374151; border: 1px solid #e5e7eb;
+      border-radius: 12px; padding: 8px 12px; font-size: 13px; outline: none; flex: 1;
+    }
+    .tx-result {
+      margin-top: 16px; background: #fff; border: 1px solid #e5e7eb;
+      border-radius: 18px; overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .tx-result-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px; border-bottom: 1px solid #f3f4f6;
+    }
+    .tx-result-title { font-size: 13px; font-weight: 600; color: #374151; }
+    .tx-word-count { font-size: 11px; color: #9ca3af; }
+    .tx-text {
+      padding: 14px 16px; font-size: 13px; line-height: 1.7;
+      color: #111827; max-height: 320px; overflow-y: auto;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .tx-actions {
+      padding: 10px 16px 14px; display: flex; gap: 8px;
+    }
+    .btn-copy {
+      flex: 1; padding: 9px 12px; border-radius: 12px;
+      border: 1px solid #e5e7eb; background: #f9fafb; color: #374151;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: background 0.2s;
+    }
+    .btn-copy:hover { background: #f3f4f6; }
+    .btn-copy.copied { background: #dcfce7; color: #16a34a; border-color: #bbf7d0; }
+    .tx-hint {
+      margin-top: 12px; padding: 12px 14px;
+      background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 14px; font-size: 12px; color: #15803d; line-height: 1.5;
+    }
+
     .platforms { margin-top: 32px; text-align: center; }
     .platforms p { font-size: 12px; color: #9ca3af; margin-bottom: 10px; }
     .tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
@@ -152,76 +216,164 @@
     </div>
   </div>
 
-  <!-- Input -->
-  <div class="input-box">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-    </svg>
-    <input id="urlInput" type="url" placeholder="Incolla il link del video..." autocomplete="off" />
-    <button class="clear-btn hidden" id="clearBtn" onclick="clearAll()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" id="tabDownload" onclick="switchTab('download')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
       </svg>
+      Scarica video
+    </button>
+    <button class="tab-btn" id="tabTranscribe" onclick="switchTab('transcribe')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>
+        <line x1="8" y1="22" x2="16" y2="22"/>
+      </svg>
+      Trascrivi audio
     </button>
   </div>
 
-  <!-- Analizza btn -->
-  <button class="btn-main btn-dark" id="analyzeBtn" onclick="analyzeVideo()">Analizza video</button>
-
-  <!-- Error -->
-  <div class="error-box hidden" id="errorBox"></div>
-
-  <!-- Card -->
-  <div class="card hidden" id="card">
-    <div class="thumb-wrap">
-      <img id="thumb" src="" alt="" onerror="this.style.display='none'" />
-      <span class="duration-badge hidden" id="duration"></span>
-    </div>
-    <div class="card-body">
-      <div class="video-title" id="videoTitle"></div>
-      <div class="uploader" id="uploader"></div>
-      <div class="badges" id="badges"></div>
-    </div>
-    <div class="card-actions">
-      <button class="btn-main btn-green" id="dlBtn" onclick="downloadVideo()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+  <!-- ===== TAB: DOWNLOAD ===== -->
+  <div class="tab-panel active" id="panelDownload">
+    <div class="input-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+      </svg>
+      <input id="urlInput" type="url" placeholder="Incolla il link del video..." autocomplete="off" />
+      <button class="clear-btn hidden" id="clearBtn" onclick="clearAll()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
         </svg>
-        Scarica MP4
       </button>
-      <div class="sub-row hidden" id="subRow">
-        <select class="lang-sel" id="langSel"></select>
-        <button class="btn-secondary" id="subBtn" onclick="downloadSubs()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-          </svg>
-          Scarica sottotitoli .txt
-        </button>
+    </div>
+
+    <button class="btn-main btn-dark" id="analyzeBtn" onclick="analyzeVideo()">Analizza video</button>
+
+    <div class="error-box hidden" id="errorBox"></div>
+
+    <div class="card hidden" id="card">
+      <div class="thumb-wrap">
+        <img id="thumb" src="" alt="" onerror="this.style.display='none'" />
+        <span class="duration-badge hidden" id="duration"></span>
       </div>
-      <button class="btn-text" onclick="clearAll()">Nuovo video</button>
+      <div class="card-body">
+        <div class="video-title" id="videoTitle"></div>
+        <div class="uploader" id="uploader"></div>
+        <div class="badges" id="badges"></div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-main btn-green" id="dlBtn" onclick="downloadVideo()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Scarica MP4
+        </button>
+        <div class="sub-row hidden" id="subRow">
+          <select class="lang-sel" id="langSel"></select>
+          <button class="btn-secondary" id="subBtn" onclick="downloadSubs()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+            </svg>
+            Scarica sottotitoli .txt
+          </button>
+        </div>
+        <button class="btn-text" onclick="clearAll()">Nuovo video</button>
+      </div>
+    </div>
+
+    <div class="platforms" id="platforms">
+      <p>Siti supportati</p>
+      <div class="tags">
+        <span class="tag">YouTube</span><span class="tag">Instagram</span>
+        <span class="tag">TikTok</span><span class="tag">Facebook</span>
+        <span class="tag">Twitter/X</span><span class="tag">Vimeo</span>
+        <span class="tag">Reddit</span><span class="tag">+1000 altri</span>
+      </div>
+      <div class="counters" id="counters"></div>
     </div>
   </div>
 
-  <!-- Piattaforme -->
-  <div class="platforms" id="platforms">
-    <p>Siti supportati</p>
-    <div class="tags">
-      <span class="tag">YouTube</span><span class="tag">Instagram</span>
-      <span class="tag">TikTok</span><span class="tag">Facebook</span>
-      <span class="tag">Twitter/X</span><span class="tag">Vimeo</span>
-      <span class="tag">Reddit</span><span class="tag">+1000 altri</span>
+  <!-- ===== TAB: TRASCRIVI ===== -->
+  <div class="tab-panel" id="panelTranscribe">
+    <div class="input-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+      </svg>
+      <input id="txUrlInput" type="url" placeholder="Incolla il link del video da trascrivere..." autocomplete="off" />
+      <button class="clear-btn hidden" id="txClearBtn" onclick="clearTranscription()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
     </div>
-    <div class="counters" id="counters"></div>
+
+    <div class="tx-lang-row">
+      <label for="txLangSel">Lingua audio:</label>
+      <select class="tx-lang-sel" id="txLangSel">
+        <option value="it">🇮🇹 Italiano</option>
+        <option value="en">🇬🇧 English</option>
+        <option value="es">🇪🇸 Español</option>
+        <option value="fr">🇫🇷 Français</option>
+        <option value="de">🇩🇪 Deutsch</option>
+        <option value="pt">🇵🇹 Português</option>
+        <option value="ar">🇸🇦 العربية</option>
+        <option value="zh">🇨🇳 中文</option>
+      </select>
+    </div>
+
+    <button class="btn-main btn-dark" id="txBtn" onclick="transcribeUrl()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="22"/>
+        <line x1="8" y1="22" x2="16" y2="22"/>
+      </svg>
+      Trascrivi audio
+    </button>
+
+    <div class="error-box hidden" id="txErrorBox"></div>
+
+    <div class="tx-hint">
+      <strong>Come funziona:</strong> il server scarica solo l'audio del video (non il video) e lo trascrive con AI. Funziona con YouTube, Instagram, TikTok e altri. Limite: circa 40 minuti per video.
+    </div>
+
+    <div class="tx-result hidden" id="txResult">
+      <div class="tx-result-header">
+        <span class="tx-result-title">Trascrizione</span>
+        <span class="tx-word-count" id="txWordCount"></span>
+      </div>
+      <div class="tx-text" id="txText"></div>
+      <div class="tx-actions">
+        <button class="btn-copy" id="copyBtn" onclick="copyTranscription()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          Copia testo
+        </button>
+        <button class="btn-secondary" onclick="downloadTranscription()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Salva .txt
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
   let currentUrl = "";
   let currentTitle = "";
+  let currentTranscription = "";
 
   fetch("/api/visit", { method: "POST" }).catch(() => {});
 
@@ -239,6 +391,15 @@
     `;
   }).catch(() => {});
 
+  // --- Tab switching ---
+  function switchTab(tab) {
+    document.getElementById("tabDownload").classList.toggle("active", tab === "download");
+    document.getElementById("tabTranscribe").classList.toggle("active", tab === "transcribe");
+    document.getElementById("panelDownload").classList.toggle("active", tab === "download");
+    document.getElementById("panelTranscribe").classList.toggle("active", tab === "transcribe");
+  }
+
+  // --- Download tab refs ---
   const urlInput = document.getElementById("urlInput");
   const clearBtn = document.getElementById("clearBtn");
   const analyzeBtn = document.getElementById("analyzeBtn");
@@ -250,25 +411,26 @@
 
   urlInput.addEventListener("input", () => {
     clearBtn.classList.toggle("hidden", !urlInput.value);
-    if (urlInput.value) {
-      analyzeBtn.className = "btn-main btn-green";
-    } else {
-      analyzeBtn.className = "btn-main btn-dark";
-    }
+    analyzeBtn.className = urlInput.value ? "btn-main btn-green" : "btn-main btn-dark";
   });
+  urlInput.addEventListener("keydown", (e) => { if (e.key === "Enter") analyzeVideo(); });
 
-  urlInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") analyzeVideo();
+  // --- Transcribe tab refs ---
+  const txUrlInput = document.getElementById("txUrlInput");
+  const txClearBtn = document.getElementById("txClearBtn");
+  const txBtn = document.getElementById("txBtn");
+
+  txUrlInput.addEventListener("input", () => {
+    txClearBtn.classList.toggle("hidden", !txUrlInput.value);
+    txBtn.className = txUrlInput.value ? "btn-main btn-purple" : "btn-main btn-dark";
   });
+  txUrlInput.addEventListener("keydown", (e) => { if (e.key === "Enter") transcribeUrl(); });
 
-  function showError(msg) {
-    errorBox.textContent = msg;
-    errorBox.classList.remove("hidden");
-  }
-
-  function hideError() {
-    errorBox.classList.add("hidden");
-  }
+  // --- Helpers ---
+  function showError(msg) { errorBox.textContent = msg; errorBox.classList.remove("hidden"); }
+  function hideError() { errorBox.classList.add("hidden"); }
+  function showTxError(msg) { document.getElementById("txErrorBox").textContent = msg; document.getElementById("txErrorBox").classList.remove("hidden"); }
+  function hideTxError() { document.getElementById("txErrorBox").classList.add("hidden"); }
 
   function clearAll() {
     urlInput.value = "";
@@ -279,6 +441,15 @@
     platforms.classList.remove("hidden");
     currentUrl = "";
     currentTitle = "";
+  }
+
+  function clearTranscription() {
+    txUrlInput.value = "";
+    txClearBtn.classList.add("hidden");
+    txBtn.className = "btn-main btn-dark";
+    document.getElementById("txResult").classList.add("hidden");
+    hideTxError();
+    currentTranscription = "";
   }
 
   function formatDuration(secs) {
@@ -325,22 +496,17 @@
     hideError();
     card.classList.add("hidden");
     platforms.classList.add("hidden");
-
     setLoading(analyzeBtn, true, "Analizza video");
-
     try {
       const data = await fetchWithRetry(`/api/info?url=${encodeURIComponent(url)}`);
-
       currentTitle = data.title || "";
       document.getElementById("thumb").src = data.thumbnail || "";
       document.getElementById("videoTitle").textContent = data.title || "";
       document.getElementById("uploader").textContent = data.uploader || "";
-
       const dur = formatDuration(data.duration);
       const durEl = document.getElementById("duration");
       if (dur) { durEl.textContent = dur; durEl.classList.remove("hidden"); }
       else durEl.classList.add("hidden");
-
       const badges = document.getElementById("badges");
       badges.innerHTML = "";
       if (data.extractor) {
@@ -355,7 +521,6 @@
         b.textContent = data.subtitleType === "manual" ? "Sottotitoli manuali" : "Sottotitoli auto";
         badges.appendChild(b);
       }
-
       const subRow = document.getElementById("subRow");
       const langSel = document.getElementById("langSel");
       if (data.hasSubtitles && data.subLangs && data.subLangs.length > 0) {
@@ -363,8 +528,7 @@
         const langs = [...new Set([...data.subLangs, "it", "en"])];
         langs.slice(0, 8).forEach(l => {
           const opt = document.createElement("option");
-          opt.value = l;
-          opt.textContent = l.toUpperCase();
+          opt.value = l; opt.textContent = l.toUpperCase();
           langSel.appendChild(opt);
         });
         if (data.subLangs.includes("it")) langSel.value = "it";
@@ -373,7 +537,6 @@
       } else {
         subRow.classList.add("hidden");
       }
-
       card.classList.remove("hidden");
     } catch (e) {
       showError(e.message);
@@ -401,11 +564,8 @@
       const filename = match ? decodeURIComponent(match[1]) : "video.mp4";
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      a.href = objectUrl; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
     } catch (e) {
       showError(e.message);
@@ -422,25 +582,83 @@
     setLoading(subBtn, true, defaultContent);
     try {
       const res = await fetch(`/api/subtitles?url=${encodeURIComponent(currentUrl)}&lang=${lang}`);
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Errore sottotitoli");
-      }
+      if (!res.ok) { const data = await res.json(); throw new Error(data.error || "Errore sottotitoli"); }
       const blob = await res.blob();
       const disposition = res.headers.get("Content-Disposition") || "";
       const match = disposition.match(/filename="([^"]+)"/);
       const filename = match ? decodeURIComponent(match[1]) : "sottotitoli.txt";
       const objectUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = filename;
-      a.click();
+      a.href = objectUrl; a.download = filename; a.click();
       URL.revokeObjectURL(objectUrl);
     } catch (e) {
       showError(e.message);
     } finally {
       setLoading(subBtn, false, defaultContent);
     }
+  }
+
+  // --- Transcription ---
+  async function transcribeUrl() {
+    const url = txUrlInput.value.trim();
+    if (!url) return;
+    hideTxError();
+    document.getElementById("txResult").classList.add("hidden");
+    currentTranscription = "";
+
+    const lang = document.getElementById("txLangSel").value;
+    const defaultContent = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg> Trascrivi audio`;
+
+    setLoading(txBtn, true, defaultContent);
+    txBtn.innerHTML = `<div class="spinner"></div> Scaricando audio e trascrivendo...`;
+
+    try {
+      const res = await fetch("/api/transcribe-url", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, lang }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore trascrizione");
+
+      currentTranscription = data.text;
+      const words = data.text.trim().split(/\s+/).length;
+
+      document.getElementById("txText").textContent = data.text;
+      document.getElementById("txWordCount").textContent = words.toLocaleString("it-IT") + " parole";
+      document.getElementById("txResult").classList.remove("hidden");
+      document.getElementById("copyBtn").className = "btn-copy";
+      document.getElementById("copyBtn").innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copia testo`;
+    } catch (e) {
+      showTxError(e.message);
+    } finally {
+      setLoading(txBtn, false, defaultContent);
+      txBtn.className = txUrlInput.value ? "btn-main btn-purple" : "btn-main btn-dark";
+    }
+  }
+
+  function copyTranscription() {
+    if (!currentTranscription) return;
+    navigator.clipboard.writeText(currentTranscription).then(() => {
+      const btn = document.getElementById("copyBtn");
+      btn.className = "btn-copy copied";
+      btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copiato!`;
+      setTimeout(() => {
+        btn.className = "btn-copy";
+        btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copia testo`;
+      }, 2000);
+    });
+  }
+
+  function downloadTranscription() {
+    if (!currentTranscription) return;
+    const blob = new Blob([currentTranscription], { type: "text/plain; charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "trascrizione.txt";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 </script>
 </body>
