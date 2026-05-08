@@ -196,6 +196,34 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .hidden { display: none !important; }
+
+    /* Player */
+    .player-wrap {
+      margin-top: 12px; background: #000; border-radius: 18px;
+      overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      position: relative;
+    }
+    .player-wrap iframe, .player-wrap video {
+      width: 100%; aspect-ratio: 16/9; display: block; border: none;
+    }
+    .player-close {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(0,0,0,0.6); border: none; color: #fff;
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; z-index: 10; line-height: 1;
+    }
+    .player-close:hover { background: rgba(0,0,0,0.85); }
+    .player-loading {
+      width: 100%; aspect-ratio: 16/9; display: flex;
+      align-items: center; justify-content: center;
+      background: #111; color: #9ca3af; font-size: 13px; gap: 10px;
+    }
+    .spinner-dark {
+      width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.15);
+      border-top-color: #9ca3af; border-radius: 50%;
+      animation: spin 0.7s linear infinite; flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -272,6 +300,13 @@
           </svg>
           Scarica MP4
         </button>
+        <button class="btn-secondary" id="watchBtn" onclick="watchVideo()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="10 8 16 12 10 16 10 8"/>
+          </svg>
+          Guarda video
+        </button>
         <div class="sub-row hidden" id="subRow">
           <select class="lang-sel" id="langSel"></select>
           <button class="btn-secondary" id="subBtn" onclick="downloadSubs()">
@@ -285,6 +320,12 @@
         </div>
         <button class="btn-text" onclick="clearAll()">Nuovo video</button>
       </div>
+    </div>
+
+    <!-- Player -->
+    <div class="player-wrap hidden" id="playerWrap">
+      <button class="player-close" onclick="closePlayer()">✕</button>
+      <div id="playerInner"></div>
     </div>
 
     <div class="platforms" id="platforms">
@@ -432,11 +473,57 @@
   function showTxError(msg) { document.getElementById("txErrorBox").textContent = msg; document.getElementById("txErrorBox").classList.remove("hidden"); }
   function hideTxError() { document.getElementById("txErrorBox").classList.add("hidden"); }
 
+  function getYouTubeId(url) {
+    const patterns = [
+      /[?&]v=([^&#]+)/,
+      /youtu\.be\/([^?&#]+)/,
+      /youtube\.com\/shorts\/([^?&#/]+)/,
+      /youtube\.com\/embed\/([^?&#/]+)/,
+    ];
+    for (const p of patterns) {
+      const m = url.match(p);
+      if (m) return m[1];
+    }
+    return null;
+  }
+
+  function watchVideo() {
+    if (!currentUrl) return;
+    const wrap = document.getElementById("playerWrap");
+    const inner = document.getElementById("playerInner");
+
+    const ytId = getYouTubeId(currentUrl);
+    if (ytId) {
+      inner.innerHTML = `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1" allowfullscreen allow="autoplay; encrypted-media"></iframe>`;
+    } else {
+      inner.innerHTML = `<div class="player-loading"><div class="spinner-dark"></div> Caricamento video...</div>`;
+      const video = document.createElement("video");
+      video.controls = true;
+      video.autoplay = true;
+      video.style.cssText = "width:100%;aspect-ratio:16/9;display:block;";
+      video.src = "/api/stream?url=" + encodeURIComponent(currentUrl);
+      video.oncanplay = () => { inner.innerHTML = ""; inner.appendChild(video); };
+      video.onerror = () => { inner.innerHTML = `<div class="player-loading">Anteprima non disponibile. Usa "Scarica MP4".</div>`; };
+      inner.appendChild(video);
+    }
+
+    wrap.classList.remove("hidden");
+    wrap.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function closePlayer() {
+    const wrap = document.getElementById("playerWrap");
+    const inner = document.getElementById("playerInner");
+    inner.innerHTML = "";
+    wrap.classList.add("hidden");
+  }
+
   function clearAll() {
     urlInput.value = "";
     clearBtn.classList.add("hidden");
     analyzeBtn.className = "btn-main btn-dark";
     card.classList.add("hidden");
+    closePlayer();
     hideError();
     platforms.classList.remove("hidden");
     currentUrl = "";
