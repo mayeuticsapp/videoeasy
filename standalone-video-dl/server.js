@@ -11,6 +11,24 @@ const PORT = process.env.PORT || 3000;
 const YTDLP_BIN = path.resolve(__dirname, "bin/yt-dlp");
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 
+// --- Cookie files per piattaforme che richiedono login ---
+const INSTAGRAM_COOKIES_PATH = "/tmp/instagram_cookies.txt";
+const TIKTOK_COOKIES_PATH = "/tmp/tiktok_cookies.txt";
+
+if (process.env.INSTAGRAM_COOKIES) {
+  try {
+    fs.writeFileSync(INSTAGRAM_COOKIES_PATH, process.env.INSTAGRAM_COOKIES);
+    console.log("Cookie Instagram caricati");
+  } catch (e) { console.error("Errore cookie Instagram:", e.message); }
+}
+
+if (process.env.TIKTOK_COOKIES) {
+  try {
+    fs.writeFileSync(TIKTOK_COOKIES_PATH, process.env.TIKTOK_COOKIES);
+    console.log("Cookie TikTok caricati");
+  } catch (e) { console.error("Errore cookie TikTok:", e.message); }
+}
+
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 
@@ -159,6 +177,22 @@ function isFacebook(url) {
   return /facebook\.com|fb\.watch/i.test(url);
 }
 
+function isInstagram(url) {
+  return /instagram\.com/i.test(url);
+}
+
+function isTikTok(url) {
+  return /tiktok\.com/i.test(url);
+}
+
+function getCookieArgs(url) {
+  if (isInstagram(url) && fs.existsSync(INSTAGRAM_COOKIES_PATH))
+    return ["--cookies", INSTAGRAM_COOKIES_PATH];
+  if (isTikTok(url) && fs.existsSync(TIKTOK_COOKIES_PATH))
+    return ["--cookies", TIKTOK_COOKIES_PATH];
+  return [];
+}
+
 function getTxArgs(url) {
   if (isYouTube(url)) return YOUTUBE_TX_ARGS;
   if (isFacebook(url)) return FACEBOOK_TX_ARGS;
@@ -207,7 +241,7 @@ app.get("/api/info", async (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).json({ error: "URL mancante" });
   try {
-    const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
+    const extra = [...getArgs(url), ...getCookieArgs(url)];
     const raw = await runYtDlp(["--dump-json", "--no-playlist", ...extra, url]);
     const data = JSON.parse(raw);
     const hasSubs = data.subtitles && Object.keys(data.subtitles).length > 0;
@@ -236,7 +270,7 @@ app.get("/api/download", (req, res) => {
   const filename = `${safeTitle}.mp4`;
   const platform = detectPlatform(url);
 
-  const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
+  const extra = [...getArgs(url), ...getCookieArgs(url)];
   const bin = fs.existsSync(YTDLP_BIN) ? YTDLP_BIN : "yt-dlp";
 
   res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(filename)}"`);
@@ -285,7 +319,7 @@ app.get("/api/subtitles", async (req, res) => {
   const uid = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
   const outputTemplate = path.join(tmpDir, `sub_${uid}.%(ext)s`);
   try {
-    const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
+    const extra = [...getArgs(url), ...getCookieArgs(url)];
     await runYtDlp([
       "--write-subs", "--write-auto-subs",
       "--sub-langs", lang,
@@ -322,7 +356,7 @@ app.get("/api/stream", (req, res) => {
   const url = req.query.url;
   if (!url) return res.status(400).json({ error: "URL mancante" });
 
-  const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
+  const extra = [...getArgs(url), ...getCookieArgs(url)];
   const bin = fs.existsSync(YTDLP_BIN) ? YTDLP_BIN : "yt-dlp";
 
   res.setHeader("Content-Type", "video/mp4");
@@ -360,7 +394,7 @@ app.post("/api/transcribe-url", async (req, res) => {
   const outputTemplate = path.join(tmpDir, `txaudio_${uid}.%(ext)s`);
 
   try {
-    const extra = getTxArgs(url);
+    const extra = [...getTxArgs(url), ...getCookieArgs(url)];
     await runYtDlp([
       "-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best[ext=mp4]/best",
       "--no-playlist",
@@ -442,6 +476,88 @@ app.get("/api/admin/stats", async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// --- Merge video ---
+
+const multer = require("multer");
+const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 200 * 1024 * 1024, files: 10 } });
+
+function cleanup(files) {
+  for (const f of files) { try { fs.unlinkSync(f); } catch {} }
+}
+
+app.post("/api/merge", upload.array("files", 10), async (req, res) => {
+  let items;
+  try { items = JSON.parse(req.body.items || "[]"); } catch { return res.status(400).json({ error: "Formato items non valido" }); }
+  const uploadedFiles = req.files || [];
+  const tempFiles = uploadedFiles.map(f => f.path);
+  const bin = fs.existsSync(YTDLP_BIN) ? YTDLP_BIN : "yt-dlp";
+
+  if (items.length < 2) {
+    cleanup(tempFiles);
+    return res.status(400).json({ error: "Servono almeno 2 clip" });
+  }
+
+  try {
+    const inputPaths = [];
+
+    for (const item of items) {
+      if (item.type === "url") {
+        const uid = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+        const outPath = path.join(os.tmpdir(), `merge_dl_${uid}.mp4`);
+        tempFiles.push(outPath);
+        const extra = [...getArgs(item.val), ...getCookieArgs(item.val)];
+        await new Promise((resolve, reject) => {
+          const proc = spawn(bin, ["-f", "best[ext=mp4]/best", "--no-playlist", ...extra, "-o", outPath, item.val]);
+          let stderr = "";
+          proc.stderr.on("data", d => stderr += d.toString());
+          proc.on("close", code => {
+            if (code === 0) resolve();
+            else {
+              const errLine = stderr.split("\n").filter(l => l.includes("ERROR")).pop() || stderr.slice(-200);
+              reject(new Error(friendlyError(errLine.replace(/^.*ERROR:\s*/, ""))));
+            }
+          });
+        });
+        inputPaths.push(outPath);
+      } else {
+        const f = uploadedFiles[item.idx];
+        if (!f) throw new Error("File caricato non trovato");
+        inputPaths.push(f.path);
+      }
+    }
+
+    const uid = crypto.randomUUID().replace(/-/g, "").slice(0, 12);
+    const concatFile = path.join(os.tmpdir(), `concat_${uid}.txt`);
+    const outputFile = path.join(os.tmpdir(), `merged_${uid}.mp4`);
+    tempFiles.push(concatFile, outputFile);
+
+    fs.writeFileSync(concatFile, inputPaths.map(p => `file '${p}'`).join("\n"));
+
+    const runFfmpeg = (args) => new Promise((resolve, reject) => {
+      const proc = spawn("ffmpeg", args);
+      let stderr = "";
+      proc.stderr.on("data", d => stderr += d.toString());
+      proc.on("close", code => code === 0 ? resolve() : reject(new Error(stderr.slice(-300))));
+    });
+
+    try {
+      await runFfmpeg(["-f", "concat", "-safe", "0", "-i", concatFile, "-c", "copy", "-y", outputFile]);
+    } catch {
+      await runFfmpeg(["-f", "concat", "-safe", "0", "-i", concatFile, "-c:v", "libx264", "-crf", "23", "-preset", "fast", "-c:a", "aac", "-b:a", "128k", "-y", outputFile]);
+    }
+
+    res.setHeader("Content-Disposition", `attachment; filename="video_unito.mp4"`);
+    res.setHeader("Content-Type", "video/mp4");
+    const stream = fs.createReadStream(outputFile);
+    stream.pipe(res);
+    stream.on("close", () => cleanup(tempFiles));
+
+  } catch (e) {
+    cleanup(tempFiles);
+    if (!res.headersSent) res.status(500).json({ error: e.message || "Errore durante l'unione" });
   }
 });
 
