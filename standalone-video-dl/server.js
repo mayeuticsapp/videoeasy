@@ -314,6 +314,36 @@ app.get("/api/subtitles", async (req, res) => {
   }
 });
 
+// --- Stream video (lettore) ---
+
+app.get("/api/stream", (req, res) => {
+  const url = req.query.url;
+  if (!url) return res.status(400).json({ error: "URL mancante" });
+
+  const extra = isYouTube(url) ? YOUTUBE_ARGS : [];
+  const bin = fs.existsSync(YTDLP_BIN) ? YTDLP_BIN : "yt-dlp";
+
+  res.setHeader("Content-Type", "video/mp4");
+
+  const proc = spawn(bin, [
+    "-f", "best[ext=mp4]/best",
+    "--no-playlist",
+    ...extra,
+    "-o", "-",
+    url,
+  ]);
+
+  let stderr = "";
+  proc.stderr.on("data", (d) => (stderr += d.toString()));
+  proc.stdout.pipe(res);
+  proc.on("close", (code) => {
+    if (code !== 0 && !res.headersSent) {
+      res.status(500).end();
+    }
+  });
+  req.on("close", () => proc.kill());
+});
+
 // --- Trascrizione da URL ---
 
 app.post("/api/transcribe-url", async (req, res) => {
