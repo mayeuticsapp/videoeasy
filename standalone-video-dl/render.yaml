@@ -3,6 +3,7 @@ services:
     name: video-downloader
     env: node
     buildCommand: |
+      apt-get install -y ffmpeg &&
       npm install &&
       mkdir -p bin &&
       curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o bin/yt-dlp &&
