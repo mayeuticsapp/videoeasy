@@ -454,6 +454,58 @@ app.post("/api/transcribe-url", async (req, res) => {
   }
 });
 
+// --- Trascrizione da file caricato ---
+
+const uploadTx = multer({
+  dest: os.tmpdir(),
+  limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB
+});
+
+app.post("/api/transcribe-file", uploadTx.single("file"), async (req, res) => {
+  const GROQ_KEY = process.env.GROQ_API_KEY;
+  if (!GROQ_KEY) return res.status(500).json({ error: "Groq API key non configurata sul server" });
+  if (!req.file) return res.status(400).json({ error: "Nessun file ricevuto" });
+
+  const tmpPath = req.file.path;
+  try {
+    const ext = (req.file.originalname || "").split(".").pop().toLowerCase() || "mp3";
+    const mimeMap = {
+      mp3: "audio/mpeg", mp4: "audio/mp4", m4a: "audio/mp4",
+      wav: "audio/wav", ogg: "audio/ogg", opus: "audio/ogg",
+      webm: "audio/webm", flac: "audio/flac", aac: "audio/aac",
+      mov: "video/quicktime", avi: "video/x-msvideo",
+    };
+    const mimeType = mimeMap[ext] || req.file.mimetype || "audio/mpeg";
+    const lang = req.body.lang || "it";
+
+    const fileBuffer = fs.readFileSync(tmpPath);
+    const formData = new FormData();
+    formData.append("file", new Blob([fileBuffer], { type: mimeType }), "audio." + ext);
+    formData.append("model", "whisper-large-v3");
+    formData.append("language", lang);
+    formData.append("response_format", "text");
+
+    const groqRes = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${GROQ_KEY}` },
+      body: formData,
+    });
+
+    if (!groqRes.ok) {
+      const err = await groqRes.json().catch(() => ({}));
+      throw new Error(err?.error?.message || `Errore Groq ${groqRes.status}`);
+    }
+
+    const text = await groqRes.text();
+    if (!text || !text.trim()) throw new Error("Nessuna trascrizione ottenuta");
+    res.json({ text: text.trim() });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally {
+    try { fs.unlinkSync(tmpPath); } catch {}
+  }
+});
+
 // --- Admin ---
 
 app.get("/api/admin/stats", async (req, res) => {
