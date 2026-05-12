@@ -225,6 +225,40 @@
       animation: spin 0.7s linear infinite; flex-shrink: 0;
     }
 
+    /* Transcribe file upload */
+    .tx-mode-toggle {
+      display: flex; gap: 4px;
+      background: #e5e7eb; border-radius: 12px; padding: 3px;
+      margin-bottom: 14px;
+    }
+    .tx-mode-btn {
+      flex: 1; padding: 7px 10px; border-radius: 9px;
+      border: none; background: transparent; color: #6b7280;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 5px;
+      transition: all 0.2s;
+    }
+    .tx-mode-btn.active { background: #fff; color: #111827; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+    .tx-upload-area {
+      border: 2px dashed #d1d5db; border-radius: 18px;
+      padding: 28px 16px; text-align: center; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s; margin-bottom: 12px;
+    }
+    .tx-upload-area:hover, .tx-upload-area.drag { border-color: #7c3aed; background: #f5f3ff; }
+    .tx-upload-area svg { color: #9ca3af; margin-bottom: 8px; }
+    .tx-upload-title { font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 4px; }
+    .tx-upload-sub { font-size: 12px; color: #9ca3af; }
+    .tx-file-chosen {
+      display: flex; align-items: center; gap: 10px;
+      background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 14px;
+      padding: 12px 14px; margin-bottom: 12px;
+    }
+    .tx-file-chosen svg { color: #16a34a; flex-shrink: 0; }
+    .tx-file-name { flex: 1; font-size: 13px; color: #111827; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tx-file-size { font-size: 11px; color: #9ca3af; flex-shrink: 0; }
+    .tx-file-remove { background: none; border: none; color: #9ca3af; cursor: pointer; padding: 2px; flex-shrink: 0; }
+    .tx-file-remove:hover { color: #dc2626; }
+
     /* Merge tab */
     .merge-list { margin-bottom: 12px; min-height: 48px; }
     .merge-empty {
@@ -451,17 +485,63 @@
 
   <!-- ===== TAB: TRASCRIVI ===== -->
   <div class="tab-panel" id="panelTranscribe">
-    <div class="input-box">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-      </svg>
-      <input id="txUrlInput" type="url" placeholder="Incolla il link del video da trascrivere..." autocomplete="off" />
-      <button class="clear-btn hidden" id="txClearBtn" onclick="clearTranscription()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+
+    <!-- Toggle URL / File -->
+    <div class="tx-mode-toggle">
+      <button class="tx-mode-btn active" id="txModeUrl" onclick="switchTxMode('url')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
         </svg>
+        Da link
       </button>
+      <button class="tx-mode-btn" id="txModeFile" onclick="switchTxMode('file')">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Carica file
+      </button>
+    </div>
+
+    <!-- Modalità URL -->
+    <div id="txUrlPanel">
+      <div class="input-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        <input id="txUrlInput" type="url" placeholder="Incolla il link del video da trascrivere..." autocomplete="off" />
+        <button class="clear-btn hidden" id="txClearBtn" onclick="clearTranscription()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Modalità File -->
+    <div id="txFilePanel" class="hidden">
+      <input type="file" id="txFileInput" accept="audio/*,video/*,.mp3,.mp4,.m4a,.wav,.ogg,.opus,.webm,.flac,.aac,.mov" class="hidden" onchange="handleTxFile(this)" />
+      <div class="tx-upload-area" id="txDropArea" onclick="document.getElementById('txFileInput').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="event.preventDefault();this.classList.remove('drag');handleTxFileDrop(event)">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 8px">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <div class="tx-upload-title">Clicca o trascina un file</div>
+        <div class="tx-upload-sub">MP3, MP4, M4A, WAV, OGG, FLAC, AAC, WEBM, MOV · max 25 MB</div>
+      </div>
+      <div class="tx-file-chosen hidden" id="txFileChosen">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+        </svg>
+        <span class="tx-file-name" id="txFileName"></span>
+        <span class="tx-file-size" id="txFileSize"></span>
+        <button class="tx-file-remove" onclick="removeTxFile()" title="Rimuovi">✕</button>
+      </div>
     </div>
 
     <div class="tx-lang-row">
@@ -478,7 +558,7 @@
       </select>
     </div>
 
-    <button class="btn-main btn-dark" id="txBtn" onclick="transcribeUrl()">
+    <button class="btn-main btn-dark" id="txBtn" onclick="transcribeAction()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/>
         <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
@@ -490,8 +570,9 @@
 
     <div class="error-box hidden" id="txErrorBox"></div>
 
-    <div class="tx-hint">
-      <strong>Come funziona:</strong> il server scarica solo l'audio del video (non il video) e lo trascrive con AI. Funziona con YouTube, Instagram, TikTok e altri. Limite: circa 40 minuti per video.
+    <div class="tx-hint" id="txHint">
+      <strong>Da link:</strong> il server scarica solo l'audio e lo trascrive con AI. Funziona con YouTube, Instagram, TikTok e altri. Limite: ~40 minuti.<br>
+      <strong>Carica file:</strong> carica direttamente un file audio o video. Limite: 25 MB (~30 min a 128kbps).
     </div>
 
     <div class="tx-result hidden" id="txResult">
@@ -890,7 +971,65 @@
     }
   }
 
-  // --- Transcription ---
+  // --- Transcription mode toggle ---
+  let txMode = "url";
+  let txSelectedFile = null;
+
+  function switchTxMode(mode) {
+    txMode = mode;
+    document.getElementById("txModeUrl").classList.toggle("active", mode === "url");
+    document.getElementById("txModeFile").classList.toggle("active", mode === "file");
+    document.getElementById("txUrlPanel").classList.toggle("hidden", mode !== "url");
+    document.getElementById("txFilePanel").classList.toggle("hidden", mode !== "file");
+    updateTxBtn();
+  }
+
+  function handleTxFile(input) {
+    const file = input.files[0];
+    if (!file) return;
+    setTxFile(file);
+    input.value = "";
+  }
+
+  function handleTxFileDrop(event) {
+    const file = event.dataTransfer.files[0];
+    if (file) setTxFile(file);
+  }
+
+  function setTxFile(file) {
+    if (file.size > 25 * 1024 * 1024) {
+      showTxError("File troppo grande. Il limite è 25 MB.");
+      return;
+    }
+    txSelectedFile = file;
+    document.getElementById("txDropArea").classList.add("hidden");
+    document.getElementById("txFileChosen").classList.remove("hidden");
+    document.getElementById("txFileName").textContent = file.name;
+    document.getElementById("txFileSize").textContent = (file.size / 1024 / 1024).toFixed(1) + " MB";
+    hideTxError();
+    updateTxBtn();
+  }
+
+  function removeTxFile() {
+    txSelectedFile = null;
+    document.getElementById("txDropArea").classList.remove("hidden");
+    document.getElementById("txFileChosen").classList.add("hidden");
+    document.getElementById("txFileName").textContent = "";
+    document.getElementById("txFileSize").textContent = "";
+    updateTxBtn();
+  }
+
+  function updateTxBtn() {
+    const ready = txMode === "url" ? !!txUrlInput.value.trim() : !!txSelectedFile;
+    txBtn.className = ready ? "btn-main btn-purple" : "btn-main btn-dark";
+  }
+
+  function transcribeAction() {
+    if (txMode === "url") transcribeUrl();
+    else transcribeFile();
+  }
+
+  // --- Transcription from URL ---
   async function transcribeUrl() {
     const url = txUrlInput.value.trim();
     if (!url) return;
@@ -912,21 +1051,53 @@
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Errore trascrizione");
-
-      currentTranscription = data.text;
-      const words = data.text.trim().split(/\s+/).length;
-
-      document.getElementById("txText").textContent = data.text;
-      document.getElementById("txWordCount").textContent = words.toLocaleString("it-IT") + " parole";
-      document.getElementById("txResult").classList.remove("hidden");
-      document.getElementById("copyBtn").className = "btn-copy";
-      document.getElementById("copyBtn").innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copia testo`;
+      showTxResult(data.text);
     } catch (e) {
       showTxError(e.message);
     } finally {
       setLoading(txBtn, false, defaultContent);
       txBtn.className = txUrlInput.value ? "btn-main btn-purple" : "btn-main btn-dark";
     }
+  }
+
+  // --- Transcription from uploaded file ---
+  async function transcribeFile() {
+    if (!txSelectedFile) return;
+    hideTxError();
+    document.getElementById("txResult").classList.add("hidden");
+    currentTranscription = "";
+
+    const lang = document.getElementById("txLangSel").value;
+    const defaultContent = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg> Trascrivi audio`;
+
+    setLoading(txBtn, true, defaultContent);
+    txBtn.innerHTML = `<div class="spinner"></div> Caricamento e trascrizione...`;
+
+    try {
+      const formData = new FormData();
+      formData.append("file", txSelectedFile, txSelectedFile.name);
+      formData.append("lang", lang);
+
+      const res = await fetch("/api/transcribe-file", { method: "POST", body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Errore trascrizione");
+      showTxResult(data.text);
+    } catch (e) {
+      showTxError(e.message);
+    } finally {
+      setLoading(txBtn, false, defaultContent);
+      txBtn.className = txSelectedFile ? "btn-main btn-purple" : "btn-main btn-dark";
+    }
+  }
+
+  function showTxResult(text) {
+    currentTranscription = text;
+    const words = text.trim().split(/\s+/).length;
+    document.getElementById("txText").textContent = text;
+    document.getElementById("txWordCount").textContent = words.toLocaleString("it-IT") + " parole";
+    document.getElementById("txResult").classList.remove("hidden");
+    document.getElementById("copyBtn").className = "btn-copy";
+    document.getElementById("copyBtn").innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copia testo`;
   }
 
   function copyTranscription() {
