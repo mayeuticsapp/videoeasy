@@ -5,6 +5,7 @@ const fs = require("fs");
 const os = require("os");
 const crypto = require("crypto");
 const { Pool } = require("pg");
+const multer = require("multer");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -533,7 +534,6 @@ app.get("/api/admin/stats", async (req, res) => {
 
 // --- Merge video ---
 
-const multer = require("multer");
 const upload = multer({ dest: os.tmpdir(), limits: { fileSize: 200 * 1024 * 1024, files: 10 } });
 
 function cleanup(files) {
